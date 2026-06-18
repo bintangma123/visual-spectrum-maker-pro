@@ -1,0 +1,3826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Spectrum Maker PRO V1</title>
+    <style>
+/* Visual Spectrum Maker PRO - Main Stylesheet */
+:root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-tertiary: #1a1a2e;
+    --bg-panel: #16161e;
+    --accent-primary: #6c5ce7;
+    --accent-secondary: #a29bfe;
+    --accent-glow: #7c3aed;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0b0;
+    --text-muted: #606070;
+    --border-color: #2a2a3e;
+    --success: #00d68f;
+    --warning: #ffaa00;
+    --danger: #ff6b6b;
+    --neon-blue: #00f5ff;
+    --neon-pink: #ff00ff;
+    --neon-green: #39ff14;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.3);
+    --transition: all 0.3s ease;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+}
+
+
+/* Header */
+#header {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    gap: 20px;
+    height: 52px;
+    flex-shrink: 0;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-icon {
+    font-size: 24px;
+}
+
+.logo h1 {
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.logo .pro {
+    background: linear-gradient(135deg, var(--accent-primary), var(--neon-pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+}
+
+#main-nav {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+}
+
+.nav-btn {
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.nav-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.nav-btn.active {
+    background: var(--accent-primary);
+    color: white;
+    box-shadow: 0 2px 10px rgba(108, 92, 231, 0.4);
+}
+
+
+/* Main Content */
+#main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+#sidebar {
+    width: 280px;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    padding: 12px;
+    flex-shrink: 0;
+}
+
+#canvas-container {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    overflow: hidden;
+}
+
+#preview-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#canvas-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+#canvas-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px dashed var(--accent-primary);
+}
+
+.drop-text {
+    font-size: 18px;
+    color: var(--accent-secondary);
+    font-weight: 600;
+}
+
+#properties-panel {
+    width: 300px;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border-color);
+    overflow-y: auto;
+    padding: 12px;
+    flex-shrink: 0;
+}
+
+
+/* Footer / Timeline */
+#footer {
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    padding: 8px 16px;
+    flex-shrink: 0;
+}
+
+#timeline {
+    height: 30px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+#transport-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#transport-controls button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+#transport-controls button:hover {
+    background: var(--accent-primary);
+    transform: scale(1.1);
+}
+
+#time-display {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: monospace;
+    min-width: 100px;
+}
+
+#seek-bar {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    outline: none;
+}
+
+#seek-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+#bpm-display {
+    font-size: 12px;
+    color: var(--neon-blue);
+    font-family: monospace;
+    font-weight: 600;
+}
+
+
+/* Sidebar Components */
+.panel-section {
+    margin-bottom: 16px;
+}
+
+.panel-section h3 {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+}
+
+.panel-item {
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    transition: var(--transition);
+    border: 1px solid transparent;
+}
+
+.panel-item:hover {
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+.panel-item.active {
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
+
+.panel-item .icon {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Controls */
+.control-group {
+    margin-bottom: 12px;
+}
+
+.control-group label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.control-group input[type="range"] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    outline: none;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.control-group input[type="color"] {
+    width: 100%;
+    height: 30px;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.control-group select {
+    width: 100%;
+    padding: 6px 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-size: 12px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.btn-primary {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--accent-glow);
+    box-shadow: 0 2px 15px rgba(108, 92, 231, 0.5);
+}
+
+.btn-success {
+    background: var(--success);
+    color: #000;
+}
+
+.btn-full {
+    width: 100%;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
+}
+
+
+/* Level Meters */
+.level-meter {
+    margin-bottom: 6px;
+}
+
+.level-meter label {
+    display: block;
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.meter-bar {
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.meter-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary), var(--neon-blue));
+    border-radius: 2px;
+    transition: width 0.05s linear;
+    width: 0%;
+}
+
+/* Drop Zone */
+.drop-zone {
+    cursor: pointer;
+}
+
+.drop-zone .panel-item {
+    border: 2px dashed var(--border-color);
+    background: transparent;
+}
+
+.drop-zone .panel-item:hover {
+    border-color: var(--accent-primary);
+    background: rgba(108, 92, 231, 0.1);
+}
+
+/* Timeline Waveform Display */
+#timeline {
+    background: var(--bg-tertiary);
+    position: relative;
+}
+
+#timeline::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: rgba(108, 92, 231, 0.2);
+    transition: width 0.1s linear;
+}
+
+/* Beat Flash Indicator */
+.beat-flash {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(108, 92, 231, 0.1);
+    opacity: 0;
+    transition: opacity 0.1s;
+    pointer-events: none;
+}
+
+.beat-flash.active {
+    opacity: 1;
+}
+
+/* Export Progress */
+#export-progress {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius);
+    padding: 12px;
+}
+
+/* Template Items */
+.panel-item[data-template] {
+    position: relative;
+    overflow: hidden;
+}
+
+.panel-item[data-template]::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent-primary);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+}
+
+.panel-item[data-template]:hover::after {
+    transform: scaleX(1);
+}
+
+/* Recording indicator */
+.recording-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(255, 0, 0, 0.8);
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    animation: pulse-recording 1s infinite;
+}
+
+@keyframes pulse-recording {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    #sidebar { width: 240px; }
+    #properties-panel { width: 240px; }
+}
+
+@media (max-width: 900px) {
+    #properties-panel { display: none; }
+    #sidebar { width: 220px; }
+}
+
+</style>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <header id="header">
+            <div class="logo">
+                <span class="logo-icon">🎵</span>
+                <h1>Visual Spectrum Maker <span class="pro">PRO</span></h1>
+            </div>
+            <nav id="main-nav">
+                <button class="nav-btn active" data-panel="dashboard">Dashboard</button>
+                <button class="nav-btn" data-panel="spectrum">Spectrum</button>
+                <button class="nav-btn" data-panel="background">Background</button>
+                <button class="nav-btn" data-panel="particles">Particles</button>
+                <button class="nav-btn" data-panel="effects">Effects</button>
+                <button class="nav-btn" data-panel="text">Text</button>
+                <button class="nav-btn" data-panel="templates">Templates</button>
+                <button class="nav-btn" data-panel="export">Export</button>
+                <button class="nav-btn" data-panel="ai">AI Assistant</button>
+            </nav>
+        </header>
+        <main id="main-content">
+            <aside id="sidebar"></aside>
+            <section id="canvas-container">
+                <canvas id="preview-canvas"></canvas>
+                <div id="canvas-overlay">
+                    <span class="drop-text">Drop MP3 or Background Here</span>
+                </div>
+            </section>
+            <aside id="properties-panel"></aside>
+        </main>
+        <footer id="footer">
+            <div id="timeline"></div>
+            <div id="transport-controls">
+                <button id="btn-play">▶</button>
+                <button id="btn-pause">⏸</button>
+                <button id="btn-stop">⏹</button>
+                <span id="time-display">00:00 / 00:00</span>
+                <input type="range" id="seek-bar" min="0" max="100" value="0">
+                <span id="bpm-display">BPM: --</span>
+            </div>
+        </footer>
+    </div>
+    <script type="module">
+// src/audio/AudioEngine.ts
+class AudioEngine {
+  context = null;
+  analyser = null;
+  gainNode = null;
+  source = null;
+  audioBuffer = null;
+  audioElement = null;
+  frequencyData = new Uint8Array(0);
+  timeDomainData = new Uint8Array(0);
+  peakHold = [];
+  smoothedData = new Float32Array(0);
+  lastBeatTime = 0;
+  beatHistory = [];
+  bpm = 0;
+  isPlaying = false;
+  startTime = 0;
+  pauseTime = 0;
+  duration = 0;
+  config = {
+    fftSize: 2048,
+    smoothing: 0.8,
+    sensitivity: 1.5,
+    gain: 1,
+    beatThreshold: 0.6,
+    peakDecay: 0.98
+  };
+  constructor() {}
+  async initialize() {
+    this.context = new AudioContext;
+    this.analyser = this.context.createAnalyser();
+    this.analyser.fftSize = this.config.fftSize;
+    this.analyser.smoothingTimeConstant = this.config.smoothing;
+    this.gainNode = this.context.createGain();
+    this.gainNode.gain.value = this.config.gain;
+    this.gainNode.connect(this.analyser);
+    this.analyser.connect(this.context.destination);
+    const bufferLength = this.analyser.frequencyBinCount;
+    this.frequencyData = new Uint8Array(bufferLength);
+    this.timeDomainData = new Uint8Array(bufferLength);
+    this.peakHold = new Array(bufferLength).fill(0);
+    this.smoothedData = new Float32Array(bufferLength);
+  }
+  async loadFile(file) {
+    if (!this.context)
+      await this.initialize();
+    const arrayBuffer = await file.arrayBuffer();
+    this.audioBuffer = await this.context.decodeAudioData(arrayBuffer);
+    this.duration = this.audioBuffer.duration;
+    const url = URL.createObjectURL(file);
+    if (this.audioElement) {
+      this.audioElement.pause();
+      URL.revokeObjectURL(this.audioElement.src);
+    }
+    this.audioElement = new Audio(url);
+    this.audioElement.crossOrigin = "anonymous";
+  }
+  play() {
+    if (!this.context || !this.audioBuffer)
+      return;
+    if (this.context.state === "suspended")
+      this.context.resume();
+    this.stop();
+    this.source = this.context.createBufferSource();
+    this.source.buffer = this.audioBuffer;
+    this.source.connect(this.gainNode);
+    const offset = this.pauseTime;
+    this.source.start(0, offset);
+    this.startTime = this.context.currentTime - offset;
+    this.isPlaying = true;
+    this.source.onended = () => {
+      if (this.isPlaying) {
+        this.isPlaying = false;
+        this.pauseTime = 0;
+      }
+    };
+  }
+  pause() {
+    if (!this.isPlaying || !this.context)
+      return;
+    this.pauseTime = this.context.currentTime - this.startTime;
+    this.source?.stop();
+    this.isPlaying = false;
+  }
+  stop() {
+    if (this.source) {
+      try {
+        this.source.stop();
+      } catch (e) {}
+      this.source.disconnect();
+      this.source = null;
+    }
+    this.isPlaying = false;
+    this.pauseTime = 0;
+  }
+  seek(time) {
+    const wasPlaying = this.isPlaying;
+    this.stop();
+    this.pauseTime = time;
+    if (wasPlaying)
+      this.play();
+  }
+  getCurrentTime() {
+    if (!this.context)
+      return 0;
+    if (this.isPlaying) {
+      return this.context.currentTime - this.startTime;
+    }
+    return this.pauseTime;
+  }
+  getDuration() {
+    return this.duration;
+  }
+  getIsPlaying() {
+    return this.isPlaying;
+  }
+  getAudioBuffer() {
+    return this.audioBuffer;
+  }
+  analyze() {
+    if (!this.analyser) {
+      return this.getEmptyAnalysis();
+    }
+    this.analyser.getByteFrequencyData(this.frequencyData);
+    this.analyser.getByteTimeDomainData(this.timeDomainData);
+    const sensitivity = this.config.sensitivity;
+    const bufferLength = this.frequencyData.length;
+    const bassEnd = Math.floor(bufferLength * 0.1);
+    const midEnd = Math.floor(bufferLength * 0.5);
+    let bassSum = 0, midSum = 0, trebleSum = 0, totalSum = 0;
+    for (let i = 0;i < bufferLength; i++) {
+      const value = this.frequencyData[i] / 255 * sensitivity;
+      totalSum += value;
+      this.smoothedData[i] = this.smoothedData[i] * 0.7 + value * 0.3;
+      if (value > this.peakHold[i]) {
+        this.peakHold[i] = value;
+      } else {
+        this.peakHold[i] *= this.config.peakDecay;
+      }
+      if (i < bassEnd)
+        bassSum += value;
+      else if (i < midEnd)
+        midSum += value;
+      else
+        trebleSum += value;
+    }
+    const bassLevel = bassSum / bassEnd;
+    const midLevel = midSum / (midEnd - bassEnd);
+    const trebleLevel = trebleSum / (bufferLength - midEnd);
+    const overallLevel = totalSum / bufferLength;
+    const isBeat = this.detectBeat(bassLevel);
+    const isKick = bassLevel > this.config.beatThreshold * 1.2;
+    const isSnare = midLevel > this.config.beatThreshold && trebleLevel > this.config.beatThreshold * 0.8;
+    return {
+      frequencyData: this.frequencyData,
+      timeDomainData: this.timeDomainData,
+      bassLevel: Math.min(bassLevel, 1),
+      midLevel: Math.min(midLevel, 1),
+      trebleLevel: Math.min(trebleLevel, 1),
+      overallLevel: Math.min(overallLevel, 1),
+      isBeat,
+      isKick,
+      isSnare,
+      bpm: this.bpm,
+      peakHold: this.peakHold,
+      smoothedData: this.smoothedData
+    };
+  }
+  detectBeat(currentLevel) {
+    const now = performance.now();
+    if (currentLevel > this.config.beatThreshold && now - this.lastBeatTime > 200) {
+      if (this.lastBeatTime > 0) {
+        const interval = now - this.lastBeatTime;
+        this.beatHistory.push(interval);
+        if (this.beatHistory.length > 20)
+          this.beatHistory.shift();
+        const avgInterval = this.beatHistory.reduce((a, b) => a + b, 0) / this.beatHistory.length;
+        this.bpm = Math.round(60000 / avgInterval);
+      }
+      this.lastBeatTime = now;
+      return true;
+    }
+    return false;
+  }
+  getEmptyAnalysis() {
+    return {
+      frequencyData: new Uint8Array(1024),
+      timeDomainData: new Uint8Array(1024),
+      bassLevel: 0,
+      midLevel: 0,
+      trebleLevel: 0,
+      overallLevel: 0,
+      isBeat: false,
+      isKick: false,
+      isSnare: false,
+      bpm: 0,
+      peakHold: [],
+      smoothedData: new Float32Array(1024)
+    };
+  }
+  setGain(value) {
+    this.config.gain = value;
+    if (this.gainNode)
+      this.gainNode.gain.value = value;
+  }
+  setSensitivity(value) {
+    this.config.sensitivity = value;
+  }
+  setSmoothing(value) {
+    this.config.smoothing = value;
+    if (this.analyser)
+      this.analyser.smoothingTimeConstant = value;
+  }
+  setBeatThreshold(value) {
+    this.config.beatThreshold = value;
+  }
+  destroy() {
+    this.stop();
+    if (this.context) {
+      this.context.close();
+      this.context = null;
+    }
+  }
+}
+
+// src/visualizers/BaseVisualizer.ts
+class BaseVisualizer {
+  ctx;
+  width;
+  height;
+  config;
+  constructor(ctx, width, height) {
+    this.ctx = ctx;
+    this.width = width;
+    this.height = height;
+    this.config = {
+      barCount: 64,
+      barWidth: 4,
+      barGap: 2,
+      barRadius: 2,
+      color: "#6c5ce7",
+      gradientColors: ["#6c5ce7", "#a29bfe", "#00f5ff"],
+      useGradient: true,
+      mirrorMode: false,
+      opacity: 1,
+      glowIntensity: 0.5,
+      reactivity: 1,
+      rotation: 0,
+      scale: 1
+    };
+  }
+  createGradient(x0, y0, x1, y1) {
+    const gradient = this.ctx.createLinearGradient(x0, y0, x1, y1);
+    const colors = this.config.gradientColors;
+    colors.forEach((color, i) => {
+      gradient.addColorStop(i / (colors.length - 1), color);
+    });
+    return gradient;
+  }
+  applyGlow() {
+    if (this.config.glowIntensity > 0) {
+      this.ctx.shadowBlur = this.config.glowIntensity * 20;
+      this.ctx.shadowColor = this.config.color;
+    }
+  }
+  clearGlow() {
+    this.ctx.shadowBlur = 0;
+  }
+  resize(width, height) {
+    this.width = width;
+    this.height = height;
+  }
+}
+
+// src/visualizers/VerticalBars.ts
+class VerticalBarsVisualizer extends BaseVisualizer {
+  render(data) {
+    const { frequencyData } = data;
+    const barCount = this.config.barCount;
+    const totalWidth = this.width;
+    const barWidth = totalWidth / barCount - this.config.barGap;
+    const centerY = this.height;
+    this.ctx.save();
+    this.ctx.globalAlpha = this.config.opacity;
+    this.applyGlow();
+    for (let i = 0;i < barCount; i++) {
+      const dataIndex = Math.floor(i * frequencyData.length / barCount);
+      const value = frequencyData[dataIndex] / 255 * this.config.reactivity;
+      const barHeight = value * this.height * 0.8;
+      const x = i * (barWidth + this.config.barGap);
+      const y = centerY - barHeight;
+      if (this.config.useGradient) {
+        this.ctx.fillStyle = this.createGradient(x, centerY, x, y);
+      } else {
+        this.ctx.fillStyle = this.config.color;
+      }
+      this.drawRoundedBar(x, y, barWidth, barHeight);
+      if (this.config.mirrorMode) {
+        this.ctx.globalAlpha = this.config.opacity * 0.4;
+        this.drawRoundedBar(x, centerY, barWidth, barHeight * 0.3);
+        this.ctx.globalAlpha = this.config.opacity;
+      }
+    }
+    this.clearGlow();
+    this.ctx.restore();
+  }
+  drawRoundedBar(x, y, w, h) {
+    const r = Math.min(this.config.barRadius, w / 2);
+    this.ctx.beginPath();
+    this.ctx.moveTo(x + r, y);
+    this.ctx.lineTo(x + w - r, y);
+    this.ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    this.ctx.lineTo(x + w, y + h);
+    this.ctx.lineTo(x, y + h);
+    this.ctx.lineTo(x, y + r);
+    this.ctx.quadraticCurveTo(x, y, x + r, y);
+    this.ctx.closePath();
+    this.ctx.fill();
+  }
+}
+
+// src/visualizers/CircularSpectrum.ts
+class CircularSpectrumVisualizer extends BaseVisualizer {
+  rotation = 0;
+  render(data) {
+    const { frequencyData, bassLevel } = data;
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    const radius = Math.min(this.width, this.height) * 0.25;
+    const barCount = this.config.barCount;
+    this.ctx.save();
+    this.ctx.globalAlpha = this.config.opacity;
+    this.applyGlow();
+    this.rotation += 0.002 + bassLevel * 0.01;
+    for (let i = 0;i < barCount; i++) {
+      const dataIndex = Math.floor(i * frequencyData.length / barCount);
+      const value = frequencyData[dataIndex] / 255 * this.config.reactivity;
+      const angle = i / barCount * Math.PI * 2 + this.rotation;
+      const barLength = value * radius * 1.5;
+      const x1 = centerX + Math.cos(angle) * radius;
+      const y1 = centerY + Math.sin(angle) * radius;
+      const x2 = centerX + Math.cos(angle) * (radius + barLength);
+      const y2 = centerY + Math.sin(angle) * (radius + barLength);
+      if (this.config.useGradient) {
+        const gradient = this.ctx.createLinearGradient(x1, y1, x2, y2);
+        const colors = this.config.gradientColors;
+        colors.forEach((color, idx) => {
+          gradient.addColorStop(idx / (colors.length - 1), color);
+        });
+        this.ctx.strokeStyle = gradient;
+      } else {
+        this.ctx.strokeStyle = this.config.color;
+      }
+      this.ctx.lineWidth = this.config.barWidth;
+      this.ctx.lineCap = "round";
+      this.ctx.beginPath();
+      this.ctx.moveTo(x1, y1);
+      this.ctx.lineTo(x2, y2);
+      this.ctx.stroke();
+      if (this.config.mirrorMode) {
+        const x3 = centerX + Math.cos(angle) * (radius - barLength * 0.4);
+        const y3 = centerY + Math.sin(angle) * (radius - barLength * 0.4);
+        this.ctx.globalAlpha = this.config.opacity * 0.5;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x3, y3);
+        this.ctx.stroke();
+        this.ctx.globalAlpha = this.config.opacity;
+      }
+    }
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, radius * (0.9 + bassLevel * 0.1), 0, Math.PI * 2);
+    this.ctx.strokeStyle = this.config.color;
+    this.ctx.lineWidth = 2;
+    this.ctx.stroke();
+    this.clearGlow();
+    this.ctx.restore();
+  }
+}
+
+// src/visualizers/WaveformVisualizer.ts
+class WaveformVisualizer extends BaseVisualizer {
+  render(data) {
+    const { timeDomainData, bassLevel } = data;
+    const centerY = this.height / 2;
+    const amplitude = this.height * 0.35 * this.config.reactivity;
+    this.ctx.save();
+    this.ctx.globalAlpha = this.config.opacity;
+    this.applyGlow();
+    this.ctx.beginPath();
+    this.ctx.lineWidth = 2 + bassLevel * 2;
+    this.ctx.lineCap = "round";
+    this.ctx.lineJoin = "round";
+    if (this.config.useGradient) {
+      this.ctx.strokeStyle = this.createGradient(0, centerY - amplitude, this.width, centerY + amplitude);
+    } else {
+      this.ctx.strokeStyle = this.config.color;
+    }
+    const sliceWidth = this.width / timeDomainData.length;
+    let x = 0;
+    for (let i = 0;i < timeDomainData.length; i++) {
+      const v = timeDomainData[i] / 128;
+      const y = centerY + (v - 1) * amplitude;
+      if (i === 0) {
+        this.ctx.moveTo(x, y);
+      } else {
+        this.ctx.lineTo(x, y);
+      }
+      x += sliceWidth;
+    }
+    this.ctx.stroke();
+    if (this.config.mirrorMode) {
+      this.ctx.globalAlpha = this.config.opacity * 0.3;
+      this.ctx.beginPath();
+      x = 0;
+      for (let i = 0;i < timeDomainData.length; i++) {
+        const v = timeDomainData[i] / 128;
+        const y = centerY - (v - 1) * amplitude * 0.5;
+        if (i === 0)
+          this.ctx.moveTo(x, y);
+        else
+          this.ctx.lineTo(x, y);
+        x += sliceWidth;
+      }
+      this.ctx.stroke();
+    }
+    this.clearGlow();
+    this.ctx.restore();
+  }
+}
+
+// src/visualizers/NeonSpectrum.ts
+class NeonSpectrumVisualizer extends BaseVisualizer {
+  render(data) {
+    const { frequencyData, bassLevel } = data;
+    const barCount = this.config.barCount;
+    const totalWidth = this.width * 0.8;
+    const barWidth = totalWidth / barCount - this.config.barGap;
+    const startX = (this.width - totalWidth) / 2;
+    const baseY = this.height * 0.65;
+    this.ctx.save();
+    this.ctx.globalAlpha = this.config.opacity;
+    for (let pass = 0;pass < 3; pass++) {
+      const blur = [20, 10, 0][pass];
+      const alpha = [0.3, 0.6, 1][pass];
+      this.ctx.shadowBlur = blur;
+      this.ctx.shadowColor = this.config.gradientColors[0];
+      this.ctx.globalAlpha = this.config.opacity * alpha;
+      for (let i = 0;i < barCount; i++) {
+        const dataIndex = Math.floor(i * frequencyData.length / barCount);
+        const value = frequencyData[dataIndex] / 255 * this.config.reactivity;
+        const barHeight = value * this.height * 0.5;
+        const x = startX + i * (barWidth + this.config.barGap);
+        const y = baseY - barHeight;
+        const hue = i / barCount * 120 + 240;
+        const saturation = 80 + value * 20;
+        const lightness = 50 + value * 20;
+        this.ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        this.ctx.fillRect(x, y, barWidth, barHeight);
+      }
+    }
+    this.ctx.globalAlpha = this.config.opacity * 0.2;
+    this.ctx.shadowBlur = 5;
+    for (let i = 0;i < barCount; i++) {
+      const dataIndex = Math.floor(i * frequencyData.length / barCount);
+      const value = frequencyData[dataIndex] / 255 * this.config.reactivity;
+      const barHeight = value * this.height * 0.15;
+      const x = startX + i * (barWidth + this.config.barGap);
+      const hue = i / barCount * 120 + 240;
+      this.ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
+      this.ctx.fillRect(x, baseY + 2, barWidth, barHeight);
+    }
+    if (bassLevel > 0.5) {
+      this.ctx.globalAlpha = (bassLevel - 0.5) * 0.4;
+      this.ctx.strokeStyle = this.config.gradientColors[0];
+      this.ctx.lineWidth = 2;
+      this.ctx.shadowBlur = 30;
+      this.ctx.beginPath();
+      this.ctx.arc(this.width / 2, baseY, totalWidth / 2 * bassLevel, 0, Math.PI * 2);
+      this.ctx.stroke();
+    }
+    this.ctx.restore();
+  }
+}
+
+// src/visualizers/MirrorBars.ts
+class MirrorBarsVisualizer extends BaseVisualizer {
+  render(data) {
+    const { frequencyData } = data;
+    const barCount = this.config.barCount;
+    const totalWidth = this.width * 0.9;
+    const barWidth = totalWidth / barCount - this.config.barGap;
+    const startX = (this.width - totalWidth) / 2;
+    const centerY = this.height / 2;
+    this.ctx.save();
+    this.ctx.globalAlpha = this.config.opacity;
+    this.applyGlow();
+    for (let i = 0;i < barCount; i++) {
+      const dataIndex = Math.floor(i * frequencyData.length / barCount);
+      const value = frequencyData[dataIndex] / 255 * this.config.reactivity;
+      const barHeight = value * this.height * 0.4;
+      const x = startX + i * (barWidth + this.config.barGap);
+      if (this.config.useGradient) {
+        this.ctx.fillStyle = this.createGradient(x, centerY - barHeight, x, centerY + barHeight);
+      } else {
+        this.ctx.fillStyle = this.config.color;
+      }
+      this.ctx.fillRect(x, centerY - barHeight, barWidth, barHeight);
+      this.ctx.fillRect(x, centerY, barWidth, barHeight);
+    }
+    this.ctx.strokeStyle = this.config.color;
+    this.ctx.lineWidth = 1;
+    this.ctx.globalAlpha = 0.3;
+    this.ctx.beginPath();
+    this.ctx.moveTo(startX, centerY);
+    this.ctx.lineTo(startX + totalWidth, centerY);
+    this.ctx.stroke();
+    this.clearGlow();
+    this.ctx.restore();
+  }
+}
+
+// src/visualizers/ParticleBurst.ts
+class ParticleBurstVisualizer extends BaseVisualizer {
+  particles = [];
+  render(data) {
+    const { frequencyData, bassLevel, isBeat } = data;
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    this.ctx.save();
+    this.ctx.globalAlpha = this.config.opacity;
+    if (isBeat) {
+      const count = Math.floor(20 + bassLevel * 40);
+      for (let i = 0;i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2 + Math.random() * 6 * bassLevel;
+        const hue = Math.random() * 60 + 240;
+        this.particles.push({
+          x: centerX,
+          y: centerY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: 1 + Math.random() * 3,
+          life: 1,
+          maxLife: 0.5 + Math.random() * 1.5,
+          color: `hsl(${hue}, 80%, 60%)`
+        });
+      }
+    }
+    const barCount = 32;
+    for (let i = 0;i < barCount; i++) {
+      const dataIndex = Math.floor(i * frequencyData.length / barCount);
+      const value = frequencyData[dataIndex] / 255;
+      if (value > 0.6 && Math.random() > 0.7) {
+        const angle = i / barCount * Math.PI * 2;
+        const radius = Math.min(this.width, this.height) * 0.2;
+        this.particles.push({
+          x: centerX + Math.cos(angle) * radius,
+          y: centerY + Math.sin(angle) * radius,
+          vx: Math.cos(angle) * value * 3,
+          vy: Math.sin(angle) * value * 3,
+          size: value * 3,
+          life: 1,
+          maxLife: 1 + Math.random(),
+          color: this.config.gradientColors[Math.floor(Math.random() * this.config.gradientColors.length)]
+        });
+      }
+    }
+    for (let i = this.particles.length - 1;i >= 0; i--) {
+      const p = this.particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.98;
+      p.vy *= 0.98;
+      p.life -= 0.016 / p.maxLife;
+      if (p.life <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+      this.ctx.globalAlpha = p.life * this.config.opacity;
+      this.ctx.shadowBlur = 10;
+      this.ctx.shadowColor = p.color;
+      this.ctx.fillStyle = p.color;
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+    if (this.particles.length > 500) {
+      this.particles = this.particles.slice(-500);
+    }
+    const gradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 100 + bassLevel * 50);
+    gradient.addColorStop(0, `rgba(108, 92, 231, ${bassLevel * 0.3})`);
+    gradient.addColorStop(1, "rgba(108, 92, 231, 0)");
+    this.ctx.fillStyle = gradient;
+    this.ctx.fillRect(0, 0, this.width, this.height);
+    this.ctx.restore();
+  }
+}
+
+// src/visualizers/EnergyRing.ts
+class EnergyRingVisualizer extends BaseVisualizer {
+  rings = [];
+  time = 0;
+  render(data) {
+    const { frequencyData, bassLevel, isBeat, overallLevel } = data;
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    const maxRadius = Math.min(this.width, this.height) * 0.4;
+    this.ctx.save();
+    this.ctx.globalAlpha = this.config.opacity;
+    this.time += 0.02;
+    if (isBeat) {
+      this.rings.push({ radius: 20, opacity: 1, width: 3 + bassLevel * 5 });
+    }
+    const ringCount = 5;
+    for (let r = 0;r < ringCount; r++) {
+      const dataStart = Math.floor(r * frequencyData.length / ringCount);
+      const dataEnd = Math.floor((r + 1) * frequencyData.length / ringCount);
+      let avg = 0;
+      for (let i = dataStart;i < dataEnd; i++)
+        avg += frequencyData[i];
+      avg = avg / (dataEnd - dataStart) / 255;
+      const radius = (r + 1) * (maxRadius / ringCount) * (0.8 + avg * 0.4);
+      const hue = 260 + r * 30;
+      this.ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${avg * 0.8})`;
+      this.ctx.lineWidth = 1 + avg * 3;
+      this.ctx.shadowBlur = avg * 15;
+      this.ctx.shadowColor = `hsl(${hue}, 80%, 60%)`;
+      this.ctx.beginPath();
+      for (let a = 0;a <= Math.PI * 2; a += 0.05) {
+        const freqIdx = Math.floor(a / (Math.PI * 2) * (dataEnd - dataStart)) + dataStart;
+        const freqVal = frequencyData[freqIdx] / 255 * this.config.reactivity;
+        const wave = Math.sin(a * 8 + this.time * 2) * freqVal * 10;
+        const px = centerX + Math.cos(a) * (radius + wave);
+        const py = centerY + Math.sin(a) * (radius + wave);
+        if (a === 0)
+          this.ctx.moveTo(px, py);
+        else
+          this.ctx.lineTo(px, py);
+      }
+      this.ctx.closePath();
+      this.ctx.stroke();
+    }
+    for (let i = this.rings.length - 1;i >= 0; i--) {
+      const ring = this.rings[i];
+      ring.radius += 3;
+      ring.opacity -= 0.015;
+      if (ring.opacity <= 0) {
+        this.rings.splice(i, 1);
+        continue;
+      }
+      this.ctx.strokeStyle = `rgba(162, 155, 254, ${ring.opacity})`;
+      this.ctx.lineWidth = ring.width * ring.opacity;
+      this.ctx.shadowBlur = 10;
+      this.ctx.shadowColor = "rgba(162, 155, 254, 0.5)";
+      this.ctx.beginPath();
+      this.ctx.arc(centerX, centerY, ring.radius, 0, Math.PI * 2);
+      this.ctx.stroke();
+    }
+    const coreSize = 15 + overallLevel * 20;
+    const coreGradient = this.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, coreSize);
+    coreGradient.addColorStop(0, `rgba(255, 255, 255, ${0.8 + bassLevel * 0.2})`);
+    coreGradient.addColorStop(0.3, `rgba(108, 92, 231, ${0.6})`);
+    coreGradient.addColorStop(1, "rgba(108, 92, 231, 0)");
+    this.ctx.fillStyle = coreGradient;
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, coreSize, 0, Math.PI * 2);
+    this.ctx.fill();
+    if (this.rings.length > 20)
+      this.rings = this.rings.slice(-20);
+    this.ctx.restore();
+  }
+}
+
+// src/particles/ParticleEngine.ts
+class ParticleEngine {
+  particles = [];
+  width;
+  height;
+  config;
+  constructor(width, height) {
+    this.width = width;
+    this.height = height;
+    this.config = {
+      type: "dust",
+      count: 100,
+      speed: 1,
+      size: 3,
+      opacity: 0.6,
+      reactToMusic: true,
+      reactivity: 1,
+      color: "#ffffff",
+      colors: ["#ffffff", "#a29bfe", "#6c5ce7", "#00f5ff"]
+    };
+  }
+  initialize() {
+    this.particles = [];
+    for (let i = 0;i < this.config.count; i++) {
+      this.particles.push(this.createParticle());
+    }
+  }
+  createParticle(fromTop = false) {
+    const type = this.config.type;
+    const color = this.config.colors[Math.floor(Math.random() * this.config.colors.length)];
+    let x = Math.random() * this.width;
+    let y = fromTop ? -10 : Math.random() * this.height;
+    let vx = 0, vy = 0;
+    switch (type) {
+      case "snow":
+        vx = (Math.random() - 0.5) * 0.5;
+        vy = 0.5 + Math.random() * 1.5;
+        break;
+      case "rain":
+        vx = -1;
+        vy = 8 + Math.random() * 4;
+        break;
+      case "fireflies":
+        vx = (Math.random() - 0.5) * 2;
+        vy = (Math.random() - 0.5) * 2;
+        break;
+      case "bubbles":
+        vx = (Math.random() - 0.5) * 0.5;
+        vy = -(0.5 + Math.random() * 1.5);
+        y = fromTop ? this.height + 10 : y;
+        break;
+      case "sparks":
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3;
+        vx = Math.cos(angle) * speed;
+        vy = Math.sin(angle) * speed;
+        x = this.width / 2;
+        y = this.height / 2;
+        break;
+      case "stars":
+        vx = 0;
+        vy = 0;
+        break;
+      case "galaxy":
+        vx = (Math.random() - 0.5) * 0.3;
+        vy = (Math.random() - 0.5) * 0.3;
+        break;
+      case "smoke":
+        vx = (Math.random() - 0.5) * 0.5;
+        vy = -(0.3 + Math.random() * 0.5);
+        y = this.height;
+        break;
+      default:
+        vx = (Math.random() - 0.5) * this.config.speed;
+        vy = (Math.random() - 0.5) * this.config.speed;
+        break;
+    }
+    return {
+      x,
+      y,
+      vx,
+      vy,
+      size: this.config.size * (0.5 + Math.random()),
+      life: 1,
+      opacity: this.config.opacity * (0.5 + Math.random() * 0.5),
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.05,
+      color,
+      type
+    };
+  }
+  update(data) {
+    const { bassLevel, overallLevel, isBeat } = data;
+    const musicFactor = this.config.reactToMusic ? overallLevel * this.config.reactivity : 0;
+    if (isBeat && this.config.reactToMusic && this.particles.length < this.config.count * 2) {
+      for (let i = 0;i < 5; i++) {
+        this.particles.push(this.createParticle(true));
+      }
+    }
+    for (let i = this.particles.length - 1;i >= 0; i--) {
+      const p = this.particles[i];
+      const speedMult = 1 + musicFactor * 2;
+      p.x += p.vx * speedMult * this.config.speed;
+      p.y += p.vy * speedMult * this.config.speed;
+      p.rotation += p.rotationSpeed;
+      switch (p.type) {
+        case "fireflies":
+          p.vx += (Math.random() - 0.5) * 0.1;
+          p.vy += (Math.random() - 0.5) * 0.1;
+          p.opacity = this.config.opacity * (0.3 + Math.sin(Date.now() * 0.003 + i) * 0.7);
+          break;
+        case "stars":
+          p.opacity = this.config.opacity * (0.5 + Math.sin(Date.now() * 0.002 + i) * 0.5);
+          p.size = this.config.size * (0.8 + bassLevel * 0.5);
+          break;
+        case "galaxy":
+          const cx = this.width / 2;
+          const cy = this.height / 2;
+          const angle = Math.atan2(p.y - cy, p.x - cx);
+          p.vx += Math.cos(angle + Math.PI / 2) * 0.01;
+          p.vy += Math.sin(angle + Math.PI / 2) * 0.01;
+          break;
+        case "sparks":
+          p.life -= 0.01;
+          p.vy += 0.05;
+          break;
+        case "smoke":
+          p.life -= 0.005;
+          p.size += 0.1;
+          p.opacity *= 0.995;
+          break;
+      }
+      const margin = 50;
+      if (p.x < -margin || p.x > this.width + margin || p.y < -margin || p.y > this.height + margin || p.life <= 0 || p.opacity <= 0.01) {
+        this.particles[i] = this.createParticle(true);
+      }
+    }
+  }
+  render(ctx) {
+    ctx.save();
+    for (const p of this.particles) {
+      ctx.globalAlpha = p.opacity;
+      ctx.fillStyle = p.color;
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = p.color;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation);
+      switch (p.type) {
+        case "dust":
+        case "fog":
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case "snow":
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case "rain":
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(1, p.size * 3);
+          ctx.stroke();
+          break;
+        case "fireflies":
+          ctx.shadowBlur = 15;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case "bubbles":
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.stroke();
+          break;
+        case "sparks":
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size * p.life, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case "stars":
+          this.drawStar(ctx, 0, 0, p.size);
+          break;
+        case "hearts":
+          this.drawHeart(ctx, 0, 0, p.size);
+          break;
+        case "notes":
+          ctx.font = `${p.size * 4}px serif`;
+          ctx.fillText("♪", 0, 0);
+          break;
+        default:
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+          ctx.fill();
+      }
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  drawStar(ctx, x, y, size) {
+    ctx.beginPath();
+    for (let i = 0;i < 5; i++) {
+      const angle = i * 4 * Math.PI / 5 - Math.PI / 2;
+      const px = x + Math.cos(angle) * size;
+      const py = y + Math.sin(angle) * size;
+      if (i === 0)
+        ctx.moveTo(px, py);
+      else
+        ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  drawHeart(ctx, x, y, size) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + size * 0.3);
+    ctx.bezierCurveTo(x, y, x - size, y, x - size, y + size * 0.3);
+    ctx.bezierCurveTo(x - size, y + size * 0.6, x, y + size, x, y + size * 1.2);
+    ctx.bezierCurveTo(x, y + size, x + size, y + size * 0.6, x + size, y + size * 0.3);
+    ctx.bezierCurveTo(x + size, y, x, y, x, y + size * 0.3);
+    ctx.fill();
+  }
+  resize(width, height) {
+    this.width = width;
+    this.height = height;
+  }
+  setType(type) {
+    this.config.type = type;
+    this.initialize();
+  }
+}
+
+// src/effects/LightingEffects.ts
+class LightingEffects {
+  config = {
+    glow: false,
+    glowIntensity: 0.5,
+    bloom: false,
+    bloomIntensity: 0.3,
+    lensFlare: false,
+    lensFlareIntensity: 0.5,
+    vignette: true,
+    vignetteIntensity: 0.4,
+    chromaticAberration: false,
+    chromaticOffset: 2,
+    neonEdge: false,
+    ambientLight: false,
+    ambientColor: "#6c5ce7"
+  };
+  apply(ctx, width, height, data) {
+    if (this.config.vignette) {
+      this.applyVignette(ctx, width, height, data);
+    }
+    if (this.config.bloom) {
+      this.applyBloom(ctx, width, height, data);
+    }
+    if (this.config.lensFlare) {
+      this.applyLensFlare(ctx, width, height, data);
+    }
+    if (this.config.ambientLight) {
+      this.applyAmbientLight(ctx, width, height, data);
+    }
+  }
+  applyVignette(ctx, w, h, data) {
+    const intensity = this.config.vignetteIntensity * (1 + data.bassLevel * 0.3);
+    const gradient = ctx.createRadialGradient(w / 2, h / 2, w * 0.3, w / 2, h / 2, w * 0.7);
+    gradient.addColorStop(0, "rgba(0,0,0,0)");
+    gradient.addColorStop(1, `rgba(0,0,0,${intensity})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+  }
+  applyBloom(ctx, w, h, data) {
+    const intensity = this.config.bloomIntensity * (0.5 + data.overallLevel * 0.5);
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = intensity;
+    ctx.filter = `blur(${8 + data.bassLevel * 10}px)`;
+    ctx.drawImage(ctx.canvas, 0, 0);
+    ctx.restore();
+  }
+  applyLensFlare(ctx, w, h, data) {
+    if (data.bassLevel < 0.4)
+      return;
+    const intensity = (data.bassLevel - 0.4) * this.config.lensFlareIntensity;
+    const cx = w * 0.6;
+    const cy = h * 0.3;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, 100 + intensity * 200);
+    gradient.addColorStop(0, `rgba(255, 255, 255, ${intensity * 0.5})`);
+    gradient.addColorStop(0.2, `rgba(200, 180, 255, ${intensity * 0.3})`);
+    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+    for (let i = 0;i < 3; i++) {
+      const fx = cx + (w / 2 - cx) * (i + 1) * 0.4;
+      const fy = cy + (h / 2 - cy) * (i + 1) * 0.4;
+      const size = 20 + i * 15;
+      const g2 = ctx.createRadialGradient(fx, fy, 0, fx, fy, size);
+      g2.addColorStop(0, `rgba(108, 92, 231, ${intensity * 0.3})`);
+      g2.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = g2;
+      ctx.fillRect(fx - size, fy - size, size * 2, size * 2);
+    }
+    ctx.restore();
+  }
+  applyAmbientLight(ctx, w, h, data) {
+    ctx.save();
+    ctx.globalCompositeOperation = "overlay";
+    ctx.globalAlpha = 0.1 + data.overallLevel * 0.15;
+    ctx.fillStyle = this.config.ambientColor;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
+}
+
+// src/effects/CameraEffects.ts
+class CameraEffects {
+  time = 0;
+  punchDecay = 0;
+  config = {
+    autoZoom: false,
+    autoZoomSpeed: 0.001,
+    bassZoom: true,
+    bassZoomIntensity: 0.05,
+    beatPunch: true,
+    beatPunchIntensity: 0.03,
+    shake: false,
+    shakeIntensity: 2,
+    rotate: false,
+    rotateSpeed: 0.0005
+  };
+  getTransform(data) {
+    this.time += 0.016;
+    let translateX = 0, translateY = 0, scale = 1, rotation = 0;
+    if (this.config.autoZoom) {
+      scale += Math.sin(this.time * this.config.autoZoomSpeed * 60) * 0.02;
+    }
+    if (this.config.bassZoom) {
+      scale += data.bassLevel * this.config.bassZoomIntensity;
+    }
+    if (this.config.beatPunch) {
+      if (data.isBeat) {
+        this.punchDecay = this.config.beatPunchIntensity;
+      }
+      scale += this.punchDecay;
+      this.punchDecay *= 0.9;
+    }
+    if (this.config.shake) {
+      const intensity = this.config.shakeIntensity * data.bassLevel;
+      translateX += (Math.random() - 0.5) * intensity;
+      translateY += (Math.random() - 0.5) * intensity;
+    }
+    if (this.config.rotate) {
+      rotation = this.time * this.config.rotateSpeed * 60;
+    }
+    return { translateX, translateY, scale, rotation };
+  }
+  applyTransform(ctx, width, height, transform) {
+    ctx.translate(width / 2 + transform.translateX, height / 2 + transform.translateY);
+    ctx.scale(transform.scale, transform.scale);
+    ctx.rotate(transform.rotation);
+    ctx.translate(-width / 2, -height / 2);
+  }
+}
+
+// src/effects/OverlayEffects.ts
+class OverlayEffects {
+  config = {
+    type: "none",
+    intensity: 0.3
+  };
+  time = 0;
+  apply(ctx, width, height, data) {
+    this.time += 0.016;
+    switch (this.config.type) {
+      case "grain":
+        this.applyGrain(ctx, width, height);
+        break;
+      case "vhs":
+        this.applyVHS(ctx, width, height);
+        break;
+      case "scanline":
+        this.applyScanlines(ctx, width, height);
+        break;
+      case "crt":
+        this.applyCRT(ctx, width, height);
+        break;
+      case "noise":
+        this.applyNoise(ctx, width, height);
+        break;
+      case "bokeh":
+        this.applyBokeh(ctx, width, height, data);
+        break;
+    }
+  }
+  applyGrain(ctx, w, h) {
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const pixels = imageData.data;
+    const intensity = this.config.intensity * 30;
+    for (let i = 0;i < pixels.length; i += 4) {
+      const noise = (Math.random() - 0.5) * intensity;
+      pixels[i] += noise;
+      pixels[i + 1] += noise;
+      pixels[i + 2] += noise;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+  applyVHS(ctx, w, h) {
+    ctx.save();
+    const glitchChance = this.config.intensity * 0.1;
+    if (Math.random() < glitchChance) {
+      const y = Math.random() * h;
+      const sliceH = 2 + Math.random() * 10;
+      const offset = (Math.random() - 0.5) * 20;
+      const imgData = ctx.getImageData(0, y, w, sliceH);
+      ctx.putImageData(imgData, offset, y);
+    }
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = this.config.intensity * 0.1;
+    ctx.fillStyle = "rgba(255, 0, 0, 0.05)";
+    ctx.fillRect(2, 0, w, h);
+    ctx.fillStyle = "rgba(0, 255, 255, 0.05)";
+    ctx.fillRect(-2, 0, w, h);
+    ctx.globalCompositeOperation = "multiply";
+    ctx.globalAlpha = this.config.intensity * 0.15;
+    for (let y = 0;y < h; y += 4) {
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.fillRect(0, y, w, 2);
+    }
+    ctx.restore();
+  }
+  applyScanlines(ctx, w, h) {
+    ctx.save();
+    ctx.globalAlpha = this.config.intensity * 0.3;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+    for (let y = 0;y < h; y += 3) {
+      ctx.fillRect(0, y, w, 1);
+    }
+    ctx.restore();
+  }
+  applyCRT(ctx, w, h) {
+    this.applyScanlines(ctx, w, h);
+    ctx.save();
+    const gradient = ctx.createRadialGradient(w / 2, h / 2, w * 0.35, w / 2, h / 2, w * 0.7);
+    gradient.addColorStop(0, "rgba(0,0,0,0)");
+    gradient.addColorStop(1, `rgba(0,0,0,${this.config.intensity * 0.5})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
+  applyNoise(ctx, w, h) {
+    ctx.save();
+    ctx.globalAlpha = this.config.intensity * 0.15;
+    const blockSize = 4;
+    for (let x = 0;x < w; x += blockSize) {
+      for (let y = 0;y < h; y += blockSize) {
+        const v = Math.floor(Math.random() * 255);
+        ctx.fillStyle = `rgb(${v},${v},${v})`;
+        ctx.fillRect(x, y, blockSize, blockSize);
+      }
+    }
+    ctx.restore();
+  }
+  applyBokeh(ctx, w, h, data) {
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    const count = 8 + Math.floor(data.overallLevel * 10);
+    for (let i = 0;i < count; i++) {
+      const x = (Math.sin(this.time * 0.3 + i * 1.7) * 0.5 + 0.5) * w;
+      const y = (Math.cos(this.time * 0.2 + i * 2.3) * 0.5 + 0.5) * h;
+      const size = 20 + Math.sin(this.time + i) * 15 + data.bassLevel * 20;
+      const alpha = 0.05 + data.overallLevel * 0.05;
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+      gradient.addColorStop(0, `rgba(162, 155, 254, ${alpha})`);
+      gradient.addColorStop(0.7, `rgba(108, 92, 231, ${alpha * 0.3})`);
+      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// src/effects/BackgroundEngine.ts
+class BackgroundEngine {
+  config = {
+    type: "gradient",
+    solidColor: "#0a0a0f",
+    gradientColors: ["#0a0a1a", "#1a0a2e", "#0a1a2e"],
+    gradientAngle: 135,
+    animatedSpeed: 0.5,
+    image: null,
+    imageFit: "cover",
+    blur: 0,
+    zoom: 1,
+    kenBurns: false,
+    parallax: false,
+    reactToMusic: true
+  };
+  time = 0;
+  kenBurnsPhase = 0;
+  render(ctx, width, height, data) {
+    this.time += 0.016;
+    ctx.save();
+    switch (this.config.type) {
+      case "solid":
+        ctx.fillStyle = this.config.solidColor;
+        ctx.fillRect(0, 0, width, height);
+        break;
+      case "gradient":
+        this.renderGradient(ctx, width, height, data);
+        break;
+      case "animated-gradient":
+        this.renderAnimatedGradient(ctx, width, height, data);
+        break;
+      case "image":
+        this.renderImage(ctx, width, height, data);
+        break;
+      case "blur":
+        this.renderBlurBackground(ctx, width, height, data);
+        break;
+    }
+    ctx.restore();
+  }
+  renderGradient(ctx, w, h, data) {
+    const angle = this.config.gradientAngle * Math.PI / 180;
+    const x0 = w / 2 + Math.cos(angle) * w / 2;
+    const y0 = h / 2 + Math.sin(angle) * h / 2;
+    const x1 = w / 2 - Math.cos(angle) * w / 2;
+    const y1 = h / 2 - Math.sin(angle) * h / 2;
+    const gradient = ctx.createLinearGradient(x0, y0, x1, y1);
+    this.config.gradientColors.forEach((color, i) => {
+      gradient.addColorStop(i / (this.config.gradientColors.length - 1), color);
+    });
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+  }
+  renderAnimatedGradient(ctx, w, h, data) {
+    const speed = this.config.animatedSpeed;
+    const angle = this.time * speed * 20 % 360;
+    const rad = angle * Math.PI / 180;
+    const cx = w / 2 + Math.cos(rad) * w * 0.3;
+    const cy = h / 2 + Math.sin(rad) * h * 0.3;
+    const radius = Math.max(w, h) * (0.8 + (this.config.reactToMusic ? data.bassLevel * 0.3 : 0));
+    const gradient = ctx.createRadialGradient(cx, cy, 0, w / 2, h / 2, radius);
+    this.config.gradientColors.forEach((color, i) => {
+      const offset = (i / (this.config.gradientColors.length - 1) + this.time * speed * 0.01) % 1;
+      gradient.addColorStop(Math.abs(offset), color);
+    });
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+  }
+  renderImage(ctx, w, h, data) {
+    if (!this.config.image) {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, w, h);
+      return;
+    }
+    const img = this.config.image;
+    let dx = 0, dy = 0, dw = w, dh = h;
+    if (this.config.imageFit === "cover") {
+      const imgRatio = img.width / img.height;
+      const canvasRatio = w / h;
+      if (imgRatio > canvasRatio) {
+        dw = h * imgRatio;
+        dx = (w - dw) / 2;
+      } else {
+        dh = w / imgRatio;
+        dy = (h - dh) / 2;
+      }
+    }
+    if (this.config.kenBurns) {
+      this.kenBurnsPhase += 0.0005;
+      const zoom = 1.1 + Math.sin(this.kenBurnsPhase) * 0.1;
+      const panX = Math.sin(this.kenBurnsPhase * 0.7) * 20;
+      const panY = Math.cos(this.kenBurnsPhase * 0.5) * 15;
+      ctx.translate(w / 2 + panX, h / 2 + panY);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-w / 2, -h / 2);
+    }
+    if (this.config.reactToMusic) {
+      const zoomFactor = 1 + data.bassLevel * 0.02;
+      ctx.translate(w / 2, h / 2);
+      ctx.scale(zoomFactor, zoomFactor);
+      ctx.translate(-w / 2, -h / 2);
+    }
+    ctx.drawImage(img, dx, dy, dw, dh);
+    if (this.config.blur > 0) {
+      ctx.filter = `blur(${this.config.blur}px)`;
+      ctx.drawImage(ctx.canvas, 0, 0);
+      ctx.filter = "none";
+    }
+  }
+  renderBlurBackground(ctx, w, h, data) {
+    const gradient = ctx.createLinearGradient(0, 0, w, h);
+    gradient.addColorStop(0, "#1a1a2e");
+    gradient.addColorStop(0.5, "#16213e");
+    gradient.addColorStop(1, "#0f3460");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+  }
+  loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image;
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        this.config.image = img;
+        this.config.type = "image";
+        resolve();
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+}
+
+// src/ui/TextOverlay.ts
+class TextOverlay {
+  layers = [];
+  time = 0;
+  constructor() {
+    this.layers = [
+      {
+        id: "title",
+        config: {
+          text: "Song Title",
+          fontFamily: "Segoe UI",
+          fontSize: 36,
+          fontWeight: "700",
+          color: "#ffffff",
+          x: 0.5,
+          y: 0.85,
+          align: "center",
+          animation: "none",
+          glowColor: "#6c5ce7",
+          glowIntensity: 0,
+          shadow: true,
+          reactToMusic: false,
+          visible: true
+        }
+      },
+      {
+        id: "artist",
+        config: {
+          text: "Artist Name",
+          fontFamily: "Segoe UI",
+          fontSize: 18,
+          fontWeight: "400",
+          color: "#a0a0b0",
+          x: 0.5,
+          y: 0.9,
+          align: "center",
+          animation: "none",
+          glowColor: "#a29bfe",
+          glowIntensity: 0,
+          shadow: false,
+          reactToMusic: false,
+          visible: true
+        }
+      }
+    ];
+  }
+  render(ctx, width, height, data) {
+    this.time += 0.016;
+    for (const layer of this.layers) {
+      if (!layer.config.visible || !layer.config.text)
+        continue;
+      this.renderTextLayer(ctx, width, height, layer, data);
+    }
+  }
+  renderTextLayer(ctx, w, h, layer, data) {
+    const cfg = layer.config;
+    ctx.save();
+    let x = cfg.x * w;
+    let y = cfg.y * h;
+    let alpha = 1;
+    let scale = 1;
+    switch (cfg.animation) {
+      case "fade":
+        alpha = 0.5 + Math.sin(this.time * 2) * 0.5;
+        break;
+      case "slide":
+        x += Math.sin(this.time) * 20;
+        break;
+      case "zoom":
+        scale = 1 + Math.sin(this.time * 1.5) * 0.1;
+        break;
+      case "bounce":
+        y += Math.abs(Math.sin(this.time * 3)) * -15;
+        break;
+      case "pulse":
+        scale = 1 + data.bassLevel * 0.15;
+        break;
+      case "neon":
+        cfg.glowIntensity = 0.5 + Math.sin(this.time * 4) * 0.5;
+        break;
+      case "glitch":
+        if (Math.random() > 0.95) {
+          x += (Math.random() - 0.5) * 10;
+          y += (Math.random() - 0.5) * 5;
+        }
+        break;
+    }
+    if (cfg.reactToMusic) {
+      scale += data.bassLevel * 0.05;
+    }
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.font = `${cfg.fontWeight} ${cfg.fontSize}px ${cfg.fontFamily}`;
+    ctx.textAlign = cfg.align;
+    ctx.textBaseline = "middle";
+    if (cfg.glowIntensity > 0) {
+      ctx.shadowBlur = cfg.glowIntensity * 20;
+      ctx.shadowColor = cfg.glowColor;
+    }
+    if (cfg.shadow) {
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = "rgba(0,0,0,0.5)";
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+    }
+    ctx.fillStyle = cfg.color;
+    ctx.fillText(cfg.text, 0, 0);
+    ctx.restore();
+  }
+  setTitle(text) {
+    const layer = this.layers.find((l) => l.id === "title");
+    if (layer)
+      layer.config.text = text;
+  }
+  setArtist(text) {
+    const layer = this.layers.find((l) => l.id === "artist");
+    if (layer)
+      layer.config.text = text;
+  }
+  getLayer(id) {
+    return this.layers.find((l) => l.id === id);
+  }
+  addLayer(id, config) {
+    const defaultConfig = {
+      text: "",
+      fontFamily: "Segoe UI",
+      fontSize: 24,
+      fontWeight: "400",
+      color: "#ffffff",
+      x: 0.5,
+      y: 0.5,
+      align: "center",
+      animation: "none",
+      glowColor: "#6c5ce7",
+      glowIntensity: 0,
+      shadow: false,
+      reactToMusic: false,
+      visible: true
+    };
+    this.layers.push({ id, config: { ...defaultConfig, ...config } });
+  }
+  removeLayer(id) {
+    this.layers = this.layers.filter((l) => l.id !== id);
+  }
+  getLayers() {
+    return this.layers;
+  }
+}
+
+// src/templates/TemplateManager.ts
+class TemplateManager {
+  templates = [];
+  constructor() {
+    this.initializeTemplates();
+  }
+  initializeTemplates() {
+    this.templates = [
+      {
+        id: "spotify",
+        name: "Spotify Style",
+        category: "Music",
+        description: "Clean bars with gradient, minimal design",
+        visualizer: "vertical-bars",
+        background: { type: "gradient", gradientColors: ["#191414", "#1a1a2e"] },
+        particles: { type: "none", count: 0 },
+        lighting: { vignette: true, vignetteIntensity: 0.3 },
+        camera: { bassZoom: true, bassZoomIntensity: 0.02 },
+        overlay: { type: "none" },
+        colors: ["#1DB954", "#1ed760", "#ffffff"],
+        textConfig: { animation: "none", color: "#ffffff" }
+      },
+      {
+        id: "trap-nation",
+        name: "Trap Nation",
+        category: "Music",
+        description: "Centered circular visualizer with artistic background",
+        visualizer: "circular",
+        background: { type: "gradient", gradientColors: ["#0a0a1a", "#1a0033", "#330066"] },
+        particles: { type: "dust", count: 50 },
+        lighting: { vignette: true, vignetteIntensity: 0.5, glow: true },
+        camera: { bassZoom: true, beatPunch: true },
+        overlay: { type: "none" },
+        colors: ["#ff00ff", "#8b00ff", "#ffffff"],
+        textConfig: { animation: "pulse", color: "#ffffff" }
+      },
+      {
+        id: "ncs",
+        name: "NCS",
+        category: "Music",
+        description: "Dynamic spectrum with bold colors",
+        visualizer: "neon",
+        background: { type: "solid", solidColor: "#000000" },
+        particles: { type: "sparks", count: 30 },
+        lighting: { bloom: true, bloomIntensity: 0.4 },
+        camera: { beatPunch: true, beatPunchIntensity: 0.04 },
+        overlay: { type: "none" },
+        colors: ["#00f5ff", "#0080ff", "#ff00ff"],
+        textConfig: { animation: "glitch", color: "#00f5ff" }
+      },
+      {
+        id: "monstercat",
+        name: "Monstercat",
+        category: "Music",
+        description: "Sharp bars with reactive elements",
+        visualizer: "vertical-bars",
+        background: { type: "gradient", gradientColors: ["#1a1a2e", "#16213e", "#0f3460"] },
+        particles: { type: "none", count: 0 },
+        lighting: { vignette: true, ambientLight: true },
+        camera: { bassZoom: true },
+        overlay: { type: "none" },
+        colors: ["#ffffff", "#6c5ce7", "#a29bfe"],
+        textConfig: { animation: "none", color: "#ffffff" }
+      },
+      {
+        id: "lofi",
+        name: "LoFi Girl",
+        category: "Chill",
+        description: "Soft waveform with warm tones",
+        visualizer: "waveform",
+        background: { type: "animated-gradient", gradientColors: ["#2d1b69", "#553c9a", "#6b46c1"] },
+        particles: { type: "fireflies", count: 30 },
+        lighting: { vignette: true, vignetteIntensity: 0.4 },
+        camera: { autoZoom: true, autoZoomSpeed: 0.0005 },
+        overlay: { type: "grain", intensity: 0.2 },
+        colors: ["#ffd93d", "#ffb347", "#ff6b6b"],
+        textConfig: { animation: "fade", color: "#ffd93d" }
+      },
+      {
+        id: "edm",
+        name: "EDM",
+        category: "Music",
+        description: "High energy particle burst",
+        visualizer: "particle-burst",
+        background: { type: "solid", solidColor: "#000000" },
+        particles: { type: "sparks", count: 80 },
+        lighting: { bloom: true, lensFlare: true, bloomIntensity: 0.5 },
+        camera: { beatPunch: true, shake: true, shakeIntensity: 3 },
+        overlay: { type: "none" },
+        colors: ["#ff0080", "#7700ff", "#00f5ff"],
+        textConfig: { animation: "pulse", color: "#ffffff" }
+      },
+      {
+        id: "chill",
+        name: "Chill",
+        category: "Chill",
+        description: "Calm waveform with soft particles",
+        visualizer: "waveform",
+        background: { type: "animated-gradient", gradientColors: ["#0f2027", "#203a43", "#2c5364"] },
+        particles: { type: "snow", count: 40 },
+        lighting: { vignette: true, vignetteIntensity: 0.3 },
+        camera: { autoZoom: true },
+        overlay: { type: "bokeh", intensity: 0.3 },
+        colors: ["#74b9ff", "#a29bfe", "#ffffff"],
+        textConfig: { animation: "fade", color: "#74b9ff" }
+      },
+      {
+        id: "podcast",
+        name: "Podcast",
+        category: "Content",
+        description: "Simple centered waveform",
+        visualizer: "waveform",
+        background: { type: "gradient", gradientColors: ["#1a1a2e", "#232323"] },
+        particles: { type: "none", count: 0 },
+        lighting: { vignette: true, vignetteIntensity: 0.2 },
+        camera: {},
+        overlay: { type: "none" },
+        colors: ["#ffffff", "#cccccc"],
+        textConfig: { animation: "none", color: "#ffffff" }
+      },
+      {
+        id: "synthwave",
+        name: "Synthwave",
+        category: "Retro",
+        description: "Retro neon grid with spectrum",
+        visualizer: "mirror-bars",
+        background: { type: "gradient", gradientColors: ["#0a0020", "#1a0040", "#2a0060"] },
+        particles: { type: "stars", count: 60 },
+        lighting: { neonEdge: true, bloom: true, chromaticAberration: true },
+        camera: { bassZoom: true },
+        overlay: { type: "scanline", intensity: 0.15 },
+        colors: ["#ff00ff", "#ff6600", "#ffff00", "#00ffff"],
+        textConfig: { animation: "neon", glowColor: "#ff00ff", color: "#ff00ff" }
+      },
+      {
+        id: "vaporwave",
+        name: "Vaporwave",
+        category: "Retro",
+        description: "Aesthetic pastel vibes",
+        visualizer: "vertical-bars",
+        background: { type: "animated-gradient", gradientColors: ["#ff71ce", "#01cdfe", "#05ffa1", "#b967ff"] },
+        particles: { type: "shapes", count: 20 },
+        lighting: { chromaticAberration: true, chromaticOffset: 3 },
+        camera: { rotate: true, rotateSpeed: 0.0002 },
+        overlay: { type: "vhs", intensity: 0.2 },
+        colors: ["#ff71ce", "#01cdfe", "#05ffa1", "#b967ff", "#fffb96"],
+        textConfig: { animation: "glitch", color: "#01cdfe" }
+      },
+      {
+        id: "cinematic",
+        name: "Cinematic",
+        category: "Content",
+        description: "Widescreen with film look",
+        visualizer: "waveform",
+        background: { type: "gradient", gradientColors: ["#000000", "#0a0a0a", "#1a1a1a"] },
+        particles: { type: "dust", count: 20 },
+        lighting: { vignette: true, vignetteIntensity: 0.6 },
+        camera: { autoZoom: true, autoZoomSpeed: 0.0003 },
+        overlay: { type: "grain", intensity: 0.15 },
+        colors: ["#d4af37", "#ffffff", "#888888"],
+        textConfig: { animation: "fade", color: "#d4af37" }
+      },
+      {
+        id: "gaming",
+        name: "Gaming",
+        category: "Content",
+        description: "RGB dynamic with energy",
+        visualizer: "energy-ring",
+        background: { type: "solid", solidColor: "#050510" },
+        particles: { type: "sparks", count: 60 },
+        lighting: { bloom: true, neonEdge: true },
+        camera: { beatPunch: true, shake: true },
+        overlay: { type: "crt", intensity: 0.1 },
+        colors: ["#ff0000", "#00ff00", "#0000ff", "#ffffff"],
+        textConfig: { animation: "glitch", color: "#00ff00" }
+      },
+      {
+        id: "worship",
+        name: "Worship",
+        category: "Content",
+        description: "Soft, warm, atmospheric",
+        visualizer: "waveform",
+        background: { type: "animated-gradient", gradientColors: ["#1a0a00", "#2a1500", "#1a0a00"] },
+        particles: { type: "fireflies", count: 40 },
+        lighting: { vignette: true, ambientLight: true, ambientColor: "#ff9900" },
+        camera: { autoZoom: true },
+        overlay: { type: "bokeh", intensity: 0.4 },
+        colors: ["#ffd700", "#ffaa00", "#ffffff"],
+        textConfig: { animation: "fade", color: "#ffd700" }
+      },
+      {
+        id: "ambient",
+        name: "Ambient",
+        category: "Chill",
+        description: "Minimal, peaceful, floating",
+        visualizer: "energy-ring",
+        background: { type: "animated-gradient", gradientColors: ["#000428", "#004e92"] },
+        particles: { type: "galaxy", count: 100 },
+        lighting: { vignette: true },
+        camera: { autoZoom: true, rotate: true, rotateSpeed: 0.0001 },
+        overlay: { type: "none" },
+        colors: ["#4facfe", "#00f2fe", "#ffffff"],
+        textConfig: { animation: "fade", color: "#4facfe" }
+      }
+    ];
+  }
+  getTemplates() {
+    return this.templates;
+  }
+  getTemplate(id) {
+    return this.templates.find((t) => t.id === id);
+  }
+  getCategories() {
+    return [...new Set(this.templates.map((t) => t.category))];
+  }
+  getTemplatesByCategory(category) {
+    return this.templates.filter((t) => t.category === category);
+  }
+}
+
+// src/export/ExportEngine.ts
+class ExportEngine {
+  config = {
+    format: "webm",
+    codec: "vp9",
+    fps: 30,
+    resolution: { width: 1920, height: 1080, label: "1080p" },
+    quality: 0.9,
+    filename: "visual-spectrum"
+  };
+  mediaRecorder = null;
+  chunks = [];
+  isRecording = false;
+  onProgress = null;
+  startTime = 0;
+  static RESOLUTIONS = [
+    { width: 1280, height: 720, label: "720p" },
+    { width: 1920, height: 1080, label: "1080p" },
+    { width: 2560, height: 1440, label: "1440p" },
+    { width: 3840, height: 2160, label: "4K" }
+  ];
+  startRecording(canvas, onProgress) {
+    this.onProgress = onProgress || null;
+    this.chunks = [];
+    this.startTime = performance.now();
+    const mimeType = this.getMimeType();
+    const stream = canvas.captureStream(this.config.fps);
+    try {
+      this.mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: this.getBitrate()
+      });
+    } catch (e) {
+      this.mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "video/webm",
+        videoBitsPerSecond: this.getBitrate()
+      });
+    }
+    this.mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        this.chunks.push(e.data);
+      }
+    };
+    this.mediaRecorder.onstop = () => {
+      this.finalize();
+    };
+    this.mediaRecorder.start(100);
+    this.isRecording = true;
+    if (this.onProgress) {
+      this.onProgress({
+        status: "rendering",
+        progress: 0,
+        currentFrame: 0,
+        totalFrames: 0,
+        elapsedTime: 0,
+        estimatedRemaining: 0
+      });
+    }
+  }
+  stopRecording() {
+    if (this.mediaRecorder && this.isRecording) {
+      this.mediaRecorder.stop();
+      this.isRecording = false;
+    }
+  }
+  finalize() {
+    const mimeType = this.getMimeType();
+    const blob = new Blob(this.chunks, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${this.config.filename}.${this.getExtension()}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    if (this.onProgress) {
+      this.onProgress({
+        status: "complete",
+        progress: 1,
+        currentFrame: 0,
+        totalFrames: 0,
+        elapsedTime: performance.now() - this.startTime,
+        estimatedRemaining: 0
+      });
+    }
+  }
+  getMimeType() {
+    switch (this.config.format) {
+      case "mp4":
+        return "video/mp4";
+      case "webm":
+        return this.config.codec === "vp9" ? "video/webm;codecs=vp9" : "video/webm;codecs=vp8";
+      default:
+        return "video/webm";
+    }
+  }
+  getExtension() {
+    return this.config.format === "gif" ? "gif" : this.config.format;
+  }
+  getBitrate() {
+    const { width, height } = this.config.resolution;
+    const pixels = width * height;
+    return Math.floor(pixels * this.config.quality * 8);
+  }
+  getIsRecording() {
+    return this.isRecording;
+  }
+  updateProgress(currentTime, totalDuration) {
+    if (!this.onProgress || !this.isRecording)
+      return;
+    const progress = currentTime / totalDuration;
+    const elapsed = performance.now() - this.startTime;
+    const estimated = progress > 0 ? elapsed / progress - elapsed : 0;
+    this.onProgress({
+      status: "rendering",
+      progress,
+      currentFrame: Math.floor(currentTime * this.config.fps),
+      totalFrames: Math.floor(totalDuration * this.config.fps),
+      elapsedTime: elapsed,
+      estimatedRemaining: estimated
+    });
+  }
+}
+
+// src/ai/AIAssistant.ts
+class AIAssistant {
+  analysisHistory = [];
+  analysisComplete = false;
+  analyze(data) {
+    this.analysisHistory.push({
+      bass: data.bassLevel,
+      mid: data.midLevel,
+      treble: data.trebleLevel,
+      bpm: data.bpm
+    });
+    if (this.analysisHistory.length > 300) {
+      this.analysisComplete = true;
+    }
+  }
+  getRecommendation() {
+    if (this.analysisHistory.length === 0) {
+      return this.getDefaultRecommendation();
+    }
+    const avgBass = this.average(this.analysisHistory.map((h) => h.bass));
+    const avgMid = this.average(this.analysisHistory.map((h) => h.mid));
+    const avgTreble = this.average(this.analysisHistory.map((h) => h.treble));
+    const avgBpm = this.average(this.analysisHistory.map((h) => h.bpm).filter((b) => b > 0));
+    const energy = this.classifyEnergy(avgBass, avgMid, avgTreble, avgBpm);
+    const mood = this.classifyMood(avgBass, avgMid, avgTreble);
+    const genre = this.classifyGenre(avgBass, avgMid, avgTreble, avgBpm);
+    return this.buildRecommendation(energy, mood, genre, avgBpm);
+  }
+  classifyEnergy(bass, mid, treble, bpm) {
+    const total = (bass + mid + treble) / 3;
+    if (total > 0.6 && bpm > 130)
+      return "high";
+    if (total > 0.4 && bpm > 100)
+      return "medium";
+    return "low";
+  }
+  classifyMood(bass, mid, treble) {
+    if (bass > mid && bass > treble)
+      return "dark";
+    if (treble > bass && treble > mid)
+      return "bright";
+    if (mid > bass * 1.2)
+      return "warm";
+    return "neutral";
+  }
+  classifyGenre(bass, mid, treble, bpm) {
+    if (bpm > 140 && bass > 0.5)
+      return "EDM";
+    if (bpm > 130 && bass > 0.6)
+      return "Trap";
+    if (bpm > 100 && bpm < 130 && mid > 0.4)
+      return "Pop";
+    if (bpm < 100 && bass < 0.3)
+      return "Ambient";
+    if (bpm < 90 && mid > 0.3)
+      return "Lo-Fi";
+    if (bass > 0.5 && mid > 0.4)
+      return "Hip-Hop";
+    if (treble > 0.5 && mid > 0.4)
+      return "Rock";
+    return "Electronic";
+  }
+  buildRecommendation(energy, mood, genre, bpm) {
+    let template = "chill";
+    let visualizer = "vertical-bars";
+    let colors = ["#6c5ce7", "#a29bfe", "#ffffff"];
+    let particles = "dust";
+    let background = "gradient";
+    switch (energy) {
+      case "high":
+        template = genre === "EDM" ? "edm" : "ncs";
+        visualizer = genre === "EDM" ? "particle-burst" : "neon";
+        colors = ["#ff0080", "#7700ff", "#00f5ff"];
+        particles = "sparks";
+        background = "solid";
+        break;
+      case "medium":
+        template = genre === "Pop" ? "spotify" : "monstercat";
+        visualizer = "vertical-bars";
+        colors = ["#6c5ce7", "#a29bfe", "#00f5ff"];
+        particles = "dust";
+        background = "gradient";
+        break;
+      case "low":
+        template = genre === "Ambient" ? "ambient" : "lofi";
+        visualizer = genre === "Ambient" ? "energy-ring" : "waveform";
+        colors = ["#4facfe", "#00f2fe", "#ffffff"];
+        particles = "fireflies";
+        background = "animated-gradient";
+        break;
+    }
+    if (mood === "dark") {
+      colors = ["#8b0000", "#4a0080", "#000033"];
+    } else if (mood === "bright") {
+      colors = ["#ffdd00", "#ff6600", "#ff0066"];
+    }
+    const youtubeTitle = this.generateTitle(genre, mood, energy);
+    const hashtags = this.generateHashtags(genre, mood);
+    const description = this.generateDescription(genre, mood, energy, bpm);
+    return {
+      template,
+      visualizer,
+      colors,
+      particles,
+      background,
+      mood,
+      energy,
+      genre,
+      youtubeTitle,
+      hashtags,
+      description
+    };
+  }
+  generateTitle(genre, mood, energy) {
+    const moodWords = {
+      dark: ["Dark", "Deep", "Midnight", "Shadow"],
+      bright: ["Bright", "Radiant", "Solar", "Golden"],
+      warm: ["Warm", "Sunset", "Autumn", "Ember"],
+      neutral: ["Crystal", "Flow", "Wave", "Echo"]
+    };
+    const word = moodWords[mood]?.[Math.floor(Math.random() * 4)] || "Visual";
+    return `${word} ${genre} Mix | ${energy === "high" ? "Energy" : energy === "low" ? "Chill" : "Vibes"} Visualizer`;
+  }
+  generateHashtags(genre, mood) {
+    return [
+      `#${genre.replace(/\s/g, "")}`,
+      "#MusicVisualizer",
+      "#Spectrum",
+      `#${mood}vibes`,
+      "#AudioVisual",
+      "#SpectrumMaker",
+      `#${genre.replace(/\s/g, "")}Music`,
+      "#Visualizer",
+      "#MusicVideo"
+    ];
+  }
+  generateDescription(genre, mood, energy, bpm) {
+    return `${genre} music visualization | ${mood} mood | ${energy} energy | ~${Math.round(bpm)} BPM
+` + `Created with Visual Spectrum Maker PRO
+
+` + `Genre: ${genre}
+Mood: ${mood}
+Energy: ${energy}
+BPM: ~${Math.round(bpm)}`;
+  }
+  getDefaultRecommendation() {
+    return {
+      template: "spotify",
+      visualizer: "vertical-bars",
+      colors: ["#6c5ce7", "#a29bfe", "#ffffff"],
+      particles: "dust",
+      background: "gradient",
+      mood: "neutral",
+      energy: "medium",
+      genre: "Electronic",
+      youtubeTitle: "Music Visualizer | Spectrum Animation",
+      hashtags: ["#MusicVisualizer", "#Spectrum", "#AudioVisual"],
+      description: "Music visualization created with Visual Spectrum Maker PRO"
+    };
+  }
+  average(arr) {
+    if (arr.length === 0)
+      return 0;
+    return arr.reduce((a, b) => a + b, 0) / arr.length;
+  }
+  isReady() {
+    return this.analysisComplete;
+  }
+  reset() {
+    this.analysisHistory = [];
+    this.analysisComplete = false;
+  }
+}
+
+// src/ui/PanelManager.ts
+class PanelManager {
+  sidebar;
+  properties;
+  currentPanel = "dashboard";
+  constructor() {
+    this.sidebar = document.getElementById("sidebar");
+    this.properties = document.getElementById("properties-panel");
+  }
+  showPanel(panelId) {
+    this.currentPanel = panelId;
+    switch (panelId) {
+      case "dashboard":
+        this.showDashboard();
+        break;
+      case "spectrum":
+        this.showSpectrum();
+        break;
+      case "background":
+        this.showBackground();
+        break;
+      case "particles":
+        this.showParticles();
+        break;
+      case "effects":
+        this.showEffects();
+        break;
+      case "text":
+        this.showText();
+        break;
+      case "templates":
+        this.showTemplates();
+        break;
+      case "export":
+        this.showExport();
+        break;
+      case "ai":
+        this.showAI();
+        break;
+    }
+  }
+  showDashboard() {
+    this.sidebar.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83C\uDFB5 Audio</h3>
+                <div class="drop-zone" id="audio-drop">
+                    <div class="panel-item" style="grid-column: span 2; padding: 20px;">
+                        <span class="icon">\uD83D\uDCC1</span>
+                        Drop MP3 Here or Click to Browse
+                        <input type="file" id="audio-input" accept="audio/*" style="display:none">
+                    </div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83C\uDF9B️ Audio Engine</h3>
+                <div class="control-group">
+                    <label>Sensitivity: <span id="val-sensitivity">1.5</span></label>
+                    <input type="range" id="ctrl-sensitivity" min="0.5" max="3" step="0.1" value="1.5">
+                </div>
+                <div class="control-group">
+                    <label>Gain: <span id="val-gain">1.0</span></label>
+                    <input type="range" id="ctrl-gain" min="0" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label>Smoothing: <span id="val-smoothing">0.8</span></label>
+                    <input type="range" id="ctrl-smoothing" min="0" max="0.99" step="0.01" value="0.8">
+                </div>
+                <div class="control-group">
+                    <label>Beat Threshold: <span id="val-beat">0.6</span></label>
+                    <input type="range" id="ctrl-beat" min="0.2" max="1" step="0.05" value="0.6">
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83D\uDCCA Levels</h3>
+                <div id="level-meters">
+                    <div class="level-meter"><label>Bass</label><div class="meter-bar"><div id="meter-bass" class="meter-fill"></div></div></div>
+                    <div class="level-meter"><label>Mid</label><div class="meter-bar"><div id="meter-mid" class="meter-fill"></div></div></div>
+                    <div class="level-meter"><label>Treble</label><div class="meter-bar"><div id="meter-treble" class="meter-fill"></div></div></div>
+                    <div class="level-meter"><label>Overall</label><div class="meter-bar"><div id="meter-overall" class="meter-fill"></div></div></div>
+                </div>
+            </div>
+        `;
+    this.properties.innerHTML = `
+            <div class="panel-section">
+                <h3>ℹ️ Quick Start</h3>
+                <p style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+                    1. Drop an MP3 file<br>
+                    2. Choose a visualizer style<br>
+                    3. Customize colors & effects<br>
+                    4. Export as video (no audio)<br>
+                    5. Combine with MP3 in editor
+                </p>
+            </div>
+            <div class="panel-section">
+                <h3>⚡ Keyboard Shortcuts</h3>
+                <p style="font-size:11px;color:var(--text-muted);line-height:1.8">
+                    Space - Play/Pause<br>
+                    S - Stop<br>
+                    R - Start Recording<br>
+                    T - Apply Template<br>
+                    1-5 - Switch Visualizer
+                </p>
+            </div>
+        `;
+  }
+  showSpectrum() {
+    this.sidebar.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83D\uDCCA Classic</h3>
+                <div class="panel-grid">
+                    <div class="panel-item active" data-viz="vertical-bars"><span class="icon">▮▮▮</span>Vertical Bars</div>
+                    <div class="panel-item" data-viz="horizontal-bars"><span class="icon">▬▬▬</span>Horizontal</div>
+                    <div class="panel-item" data-viz="mirror-bars"><span class="icon">⬍</span>Mirror Bars</div>
+                    <div class="panel-item" data-viz="double-bars"><span class="icon">▮▮</span>Double Bars</div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>⭕ Circle</h3>
+                <div class="panel-grid">
+                    <div class="panel-item" data-viz="circular"><span class="icon">◎</span>Circular</div>
+                    <div class="panel-item" data-viz="energy-ring"><span class="icon">◉</span>Energy Ring</div>
+                    <div class="panel-item" data-viz="double-ring"><span class="icon">◎◎</span>Double Ring</div>
+                    <div class="panel-item" data-viz="radial"><span class="icon">✺</span>Radial</div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83C\uDF0A Wave</h3>
+                <div class="panel-grid">
+                    <div class="panel-item" data-viz="waveform"><span class="icon">〰️</span>Waveform</div>
+                    <div class="panel-item" data-viz="oscilloscope"><span class="icon">∿</span>Oscilloscope</div>
+                    <div class="panel-item" data-viz="ribbon"><span class="icon">\uD83C\uDF97️</span>Ribbon Wave</div>
+                    <div class="panel-item" data-viz="liquid"><span class="icon">\uD83D\uDCA7</span>Liquid Wave</div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>✨ Modern</h3>
+                <div class="panel-grid">
+                    <div class="panel-item" data-viz="neon"><span class="icon">\uD83D\uDCA1</span>Neon</div>
+                    <div class="panel-item" data-viz="glass"><span class="icon">\uD83E\uDE9F</span>Glass</div>
+                    <div class="panel-item" data-viz="rgb"><span class="icon">\uD83C\uDF08</span>RGB</div>
+                    <div class="panel-item" data-viz="cyber"><span class="icon">\uD83E\uDD16</span>Cyber</div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83D\uDC8E Premium</h3>
+                <div class="panel-grid">
+                    <div class="panel-item" data-viz="particle-burst"><span class="icon">\uD83D\uDCA5</span>Particle Burst</div>
+                    <div class="panel-item" data-viz="plasma"><span class="icon">⚡</span>Plasma Wave</div>
+                    <div class="panel-item" data-viz="aurora"><span class="icon">\uD83C\uDF0C</span>Aurora</div>
+                    <div class="panel-item" data-viz="fire"><span class="icon">\uD83D\uDD25</span>Fire</div>
+                </div>
+            </div>
+        `;
+    this.showSpectrumProperties();
+  }
+  showSpectrumProperties() {
+    this.properties.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83C\uDFA8 Colors</h3>
+                <div class="control-group">
+                    <label>Primary Color</label>
+                    <input type="color" id="viz-color1" value="#6c5ce7">
+                </div>
+                <div class="control-group">
+                    <label>Secondary Color</label>
+                    <input type="color" id="viz-color2" value="#a29bfe">
+                </div>
+                <div class="control-group">
+                    <label>Accent Color</label>
+                    <input type="color" id="viz-color3" value="#00f5ff">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="viz-gradient" checked> Use Gradient</label>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>⚙️ Settings</h3>
+                <div class="control-group">
+                    <label>Bar Count: <span id="val-barcount">64</span></label>
+                    <input type="range" id="ctrl-barcount" min="8" max="256" step="8" value="64">
+                </div>
+                <div class="control-group">
+                    <label>Bar Width: <span id="val-barwidth">4</span></label>
+                    <input type="range" id="ctrl-barwidth" min="1" max="20" step="1" value="4">
+                </div>
+                <div class="control-group">
+                    <label>Gap: <span id="val-bargap">2</span></label>
+                    <input type="range" id="ctrl-bargap" min="0" max="10" step="1" value="2">
+                </div>
+                <div class="control-group">
+                    <label>Reactivity: <span id="val-reactivity">1.0</span></label>
+                    <input type="range" id="ctrl-reactivity" min="0.5" max="3" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label>Glow: <span id="val-glow">0.5</span></label>
+                    <input type="range" id="ctrl-glow" min="0" max="1" step="0.1" value="0.5">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="viz-mirror"> Mirror Mode</label>
+                </div>
+            </div>
+        `;
+  }
+  showBackground() {
+    this.sidebar.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83D\uDDBC️ Background Type</h3>
+                <div class="panel-grid">
+                    <div class="panel-item active" data-bg="solid"><span class="icon">⬛</span>Solid</div>
+                    <div class="panel-item" data-bg="gradient"><span class="icon">\uD83C\uDF05</span>Gradient</div>
+                    <div class="panel-item" data-bg="image"><span class="icon">\uD83D\uDDBC️</span>Image</div>
+                    <div class="panel-item" data-bg="animated-gradient"><span class="icon">\uD83C\uDF86</span>Animated</div>
+                    <div class="panel-item" data-bg="blur"><span class="icon">\uD83D\uDD32</span>Frosted</div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83C\uDFA8 Background Settings</h3>
+                <div class="control-group">
+                    <label>Background Color</label>
+                    <input type="color" id="bg-color" value="#0a0a0f">
+                </div>
+                <div class="control-group">
+                    <label>Gradient Color 1</label>
+                    <input type="color" id="bg-grad1" value="#0a0a1a">
+                </div>
+                <div class="control-group">
+                    <label>Gradient Color 2</label>
+                    <input type="color" id="bg-grad2" value="#1a0a2e">
+                </div>
+                <div class="control-group">
+                    <label>Gradient Color 3</label>
+                    <input type="color" id="bg-grad3" value="#0a1a2e">
+                </div>
+                <div class="control-group">
+                    <label>Angle: <span id="val-bgangle">135</span>°</label>
+                    <input type="range" id="ctrl-bgangle" min="0" max="360" step="5" value="135">
+                </div>
+                <div class="control-group">
+                    <label>Animation Speed: <span id="val-bgspeed">0.5</span></label>
+                    <input type="range" id="ctrl-bgspeed" min="0" max="2" step="0.1" value="0.5">
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83D\uDCF7 Image</h3>
+                <div class="panel-item" style="padding:15px;cursor:pointer" id="bg-image-upload">
+                    <span class="icon">\uD83D\uDCC1</span>Upload Background Image
+                    <input type="file" id="bg-image-input" accept="image/*" style="display:none">
+                </div>
+                <div class="control-group">
+                    <label>Blur: <span id="val-bgblur">0</span></label>
+                    <input type="range" id="ctrl-bgblur" min="0" max="20" step="1" value="0">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="bg-kenburns"> Ken Burns Effect</label>
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="bg-reactive" checked> React to Music</label>
+                </div>
+            </div>
+        `;
+    this.properties.innerHTML = "";
+  }
+  showParticles() {
+    this.sidebar.innerHTML = `
+            <div class="panel-section">
+                <h3>✨ Particle Type</h3>
+                <div class="panel-grid">
+                    <div class="panel-item" data-particle="dust"><span class="icon">\uD83C\uDF2B️</span>Dust</div>
+                    <div class="panel-item" data-particle="snow"><span class="icon">❄️</span>Snow</div>
+                    <div class="panel-item" data-particle="rain"><span class="icon">\uD83C\uDF27️</span>Rain</div>
+                    <div class="panel-item active" data-particle="fireflies"><span class="icon">✨</span>Fireflies</div>
+                    <div class="panel-item" data-particle="bubbles"><span class="icon">\uD83E\uDEE7</span>Bubbles</div>
+                    <div class="panel-item" data-particle="sparks"><span class="icon">⚡</span>Sparks</div>
+                    <div class="panel-item" data-particle="stars"><span class="icon">⭐</span>Stars</div>
+                    <div class="panel-item" data-particle="galaxy"><span class="icon">\uD83C\uDF0C</span>Galaxy</div>
+                    <div class="panel-item" data-particle="smoke"><span class="icon">\uD83D\uDCA8</span>Smoke</div>
+                    <div class="panel-item" data-particle="fog"><span class="icon">\uD83C\uDF01</span>Fog</div>
+                    <div class="panel-item" data-particle="hearts"><span class="icon">\uD83D\uDC96</span>Hearts</div>
+                    <div class="panel-item" data-particle="notes"><span class="icon">\uD83C\uDFB5</span>Notes</div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>⚙️ Settings</h3>
+                <div class="control-group">
+                    <label>Count: <span id="val-pcount">100</span></label>
+                    <input type="range" id="ctrl-pcount" min="10" max="300" step="10" value="100">
+                </div>
+                <div class="control-group">
+                    <label>Speed: <span id="val-pspeed">1.0</span></label>
+                    <input type="range" id="ctrl-pspeed" min="0.1" max="5" step="0.1" value="1">
+                </div>
+                <div class="control-group">
+                    <label>Size: <span id="val-psize">3</span></label>
+                    <input type="range" id="ctrl-psize" min="1" max="10" step="0.5" value="3">
+                </div>
+                <div class="control-group">
+                    <label>Opacity: <span id="val-popacity">0.6</span></label>
+                    <input type="range" id="ctrl-popacity" min="0.1" max="1" step="0.05" value="0.6">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="particle-reactive" checked> React to Music</label>
+                </div>
+                <div class="control-group">
+                    <label>Reactivity: <span id="val-preactivity">1.0</span></label>
+                    <input type="range" id="ctrl-preactivity" min="0.5" max="3" step="0.1" value="1">
+                </div>
+            </div>
+        `;
+    this.properties.innerHTML = "";
+  }
+  showEffects() {
+    this.sidebar.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83D\uDCA1 Lighting</h3>
+                <div class="control-group">
+                    <label><input type="checkbox" id="fx-vignette" checked> Vignette</label>
+                    <input type="range" id="ctrl-vignette" min="0" max="1" step="0.05" value="0.4">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="fx-bloom"> Bloom</label>
+                    <input type="range" id="ctrl-bloom" min="0" max="1" step="0.05" value="0.3">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="fx-lensflare"> Lens Flare</label>
+                    <input type="range" id="ctrl-lensflare" min="0" max="1" step="0.05" value="0.5">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="fx-ambient"> Ambient Light</label>
+                    <input type="color" id="fx-ambient-color" value="#6c5ce7">
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83D\uDCF7 Camera</h3>
+                <div class="control-group">
+                    <label><input type="checkbox" id="cam-autozoom"> Auto Zoom</label>
+                    <input type="range" id="ctrl-autozoom" min="0.0001" max="0.005" step="0.0001" value="0.001">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="cam-basszoom" checked> Bass Zoom</label>
+                    <input type="range" id="ctrl-basszoom" min="0" max="0.1" step="0.005" value="0.05">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="cam-beatpunch" checked> Beat Punch</label>
+                    <input type="range" id="ctrl-beatpunch" min="0" max="0.1" step="0.005" value="0.03">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="cam-shake"> Shake</label>
+                    <input type="range" id="ctrl-shake" min="0" max="10" step="0.5" value="2">
+                </div>
+                <div class="control-group">
+                    <label><input type="checkbox" id="cam-rotate"> Rotate</label>
+                    <input type="range" id="ctrl-rotate" min="0.0001" max="0.005" step="0.0001" value="0.0005">
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83C\uDFAC Overlay</h3>
+                <div class="panel-grid">
+                    <div class="panel-item active" data-overlay="none"><span class="icon">✕</span>None</div>
+                    <div class="panel-item" data-overlay="grain"><span class="icon">\uD83C\uDF9E️</span>Film Grain</div>
+                    <div class="panel-item" data-overlay="vhs"><span class="icon">\uD83D\uDCFC</span>VHS</div>
+                    <div class="panel-item" data-overlay="crt"><span class="icon">\uD83D\uDDA5️</span>CRT</div>
+                    <div class="panel-item" data-overlay="scanline"><span class="icon">≡</span>Scanline</div>
+                    <div class="panel-item" data-overlay="noise"><span class="icon">▓</span>Noise</div>
+                    <div class="panel-item" data-overlay="bokeh"><span class="icon">●</span>Bokeh</div>
+                </div>
+                <div class="control-group">
+                    <label>Intensity: <span id="val-overlay">0.3</span></label>
+                    <input type="range" id="ctrl-overlay" min="0" max="1" step="0.05" value="0.3">
+                </div>
+            </div>
+        `;
+    this.properties.innerHTML = "";
+  }
+  showText() {
+    this.sidebar.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83D\uDCDD Text Layers</h3>
+                <div class="control-group">
+                    <label>Song Title</label>
+                    <input type="text" id="text-title" value="Song Title" style="width:100%;padding:6px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius);color:white;font-size:12px;">
+                </div>
+                <div class="control-group">
+                    <label>Artist</label>
+                    <input type="text" id="text-artist" value="Artist Name" style="width:100%;padding:6px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius);color:white;font-size:12px;">
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83C\uDFA8 Style</h3>
+                <div class="control-group">
+                    <label>Font Size: <span id="val-fontsize">36</span></label>
+                    <input type="range" id="ctrl-fontsize" min="12" max="72" step="2" value="36">
+                </div>
+                <div class="control-group">
+                    <label>Color</label>
+                    <input type="color" id="text-color" value="#ffffff">
+                </div>
+                <div class="control-group">
+                    <label>Position Y: <span id="val-texty">0.85</span></label>
+                    <input type="range" id="ctrl-texty" min="0.1" max="0.95" step="0.01" value="0.85">
+                </div>
+                <div class="control-group">
+                    <label>Glow Intensity: <span id="val-textglow">0</span></label>
+                    <input type="range" id="ctrl-textglow" min="0" max="1" step="0.1" value="0">
+                </div>
+                <div class="control-group">
+                    <label>Glow Color</label>
+                    <input type="color" id="text-glow-color" value="#6c5ce7">
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>✨ Animation</h3>
+                <div class="panel-grid">
+                    <div class="panel-item active" data-textanim="none"><span class="icon">—</span>None</div>
+                    <div class="panel-item" data-textanim="fade"><span class="icon">◐</span>Fade</div>
+                    <div class="panel-item" data-textanim="slide"><span class="icon">→</span>Slide</div>
+                    <div class="panel-item" data-textanim="zoom"><span class="icon">\uD83D\uDD0D</span>Zoom</div>
+                    <div class="panel-item" data-textanim="bounce"><span class="icon">⤴</span>Bounce</div>
+                    <div class="panel-item" data-textanim="pulse"><span class="icon">\uD83D\uDC93</span>Pulse</div>
+                    <div class="panel-item" data-textanim="neon"><span class="icon">\uD83D\uDCA1</span>Neon</div>
+                    <div class="panel-item" data-textanim="glitch"><span class="icon">⚡</span>Glitch</div>
+                </div>
+            </div>
+        `;
+    this.properties.innerHTML = "";
+  }
+  showTemplates() {
+    this.sidebar.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83C\uDFAD Visual Templates</h3>
+                <div class="panel-grid">
+                    <div class="panel-item" data-template="spotify"><span class="icon">\uD83D\uDFE2</span>Spotify</div>
+                    <div class="panel-item" data-template="trap-nation"><span class="icon">\uD83D\uDD2E</span>Trap Nation</div>
+                    <div class="panel-item" data-template="ncs"><span class="icon">⚡</span>NCS</div>
+                    <div class="panel-item" data-template="monstercat"><span class="icon">\uD83D\uDC31</span>Monstercat</div>
+                    <div class="panel-item" data-template="lofi"><span class="icon">☕</span>LoFi Girl</div>
+                    <div class="panel-item" data-template="edm"><span class="icon">\uD83C\uDFA7</span>EDM</div>
+                    <div class="panel-item" data-template="chill"><span class="icon">\uD83C\uDF0A</span>Chill</div>
+                    <div class="panel-item" data-template="podcast"><span class="icon">\uD83C\uDF99️</span>Podcast</div>
+                    <div class="panel-item" data-template="worship"><span class="icon">✝️</span>Worship</div>
+                    <div class="panel-item" data-template="ambient"><span class="icon">\uD83C\uDF0C</span>Ambient</div>
+                    <div class="panel-item" data-template="cinematic"><span class="icon">\uD83C\uDFAC</span>Cinematic</div>
+                    <div class="panel-item" data-template="gaming"><span class="icon">\uD83C\uDFAE</span>Gaming</div>
+                    <div class="panel-item" data-template="synthwave"><span class="icon">\uD83C\uDF06</span>Synthwave</div>
+                    <div class="panel-item" data-template="vaporwave"><span class="icon">\uD83C\uDF38</span>Vaporwave</div>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83D\uDCBE Preset Manager</h3>
+                <button class="btn btn-primary btn-full" id="btn-save-preset">Save Current as Preset</button>
+                <button class="btn btn-full" id="btn-random-preset" style="margin-top:8px;background:var(--bg-tertiary);color:var(--text-primary);">\uD83C\uDFB2 Random Preset</button>
+            </div>
+        `;
+    this.properties.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83D\uDCCB Template Info</h3>
+                <p id="template-desc" style="font-size:12px;color:var(--text-secondary);line-height:1.6">
+                    Select a template to preview its settings.
+                </p>
+            </div>
+        `;
+  }
+  showExport() {
+    this.sidebar.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83C\uDFAC Export Settings</h3>
+                <div class="control-group">
+                    <label>Format</label>
+                    <select id="export-format">
+                        <option value="webm">WebM (VP9)</option>
+                        <option value="mp4">MP4 (H.264)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Resolution</label>
+                    <select id="export-resolution">
+                        <option value="720">720p (1280×720)</option>
+                        <option value="1080" selected>1080p (1920×1080)</option>
+                        <option value="1440">1440p (2560×1440)</option>
+                        <option value="4k">4K (3840×2160)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>FPS</label>
+                    <select id="export-fps">
+                        <option value="24">24 FPS</option>
+                        <option value="30" selected>30 FPS</option>
+                        <option value="60">60 FPS</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Quality: <span id="val-quality">90%</span></label>
+                    <input type="range" id="ctrl-quality" min="0.5" max="1" step="0.05" value="0.9">
+                </div>
+                <div class="control-group">
+                    <label>Filename</label>
+                    <input type="text" id="export-filename" value="visual-spectrum" style="width:100%;padding:6px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:var(--radius);color:white;font-size:12px;">
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>\uD83C\uDFA5 Record</h3>
+                <button class="btn btn-primary btn-full" id="btn-start-record">⏺ Start Recording</button>
+                <button class="btn btn-full" id="btn-stop-record" style="margin-top:8px;background:var(--danger);color:white;display:none;">⏹ Stop Recording</button>
+                <div id="export-progress" style="margin-top:12px;display:none;">
+                    <div style="background:var(--bg-tertiary);border-radius:4px;height:8px;overflow:hidden;">
+                        <div id="export-progress-bar" style="height:100%;background:var(--accent-primary);width:0%;transition:width 0.3s;"></div>
+                    </div>
+                    <p id="export-status" style="font-size:11px;color:var(--text-secondary);margin-top:6px;">Ready</p>
+                </div>
+            </div>
+            <div class="panel-section">
+                <h3>ℹ️ Output Info</h3>
+                <p style="font-size:11px;color:var(--text-muted);line-height:1.6;">
+                    • Video exports WITHOUT audio<br>
+                    • Combine with MP3 in CapCut, Premiere Pro, or DaVinci Resolve<br>
+                    • WebM format has best browser support<br>
+                    • Higher resolution = larger file
+                </p>
+            </div>
+        `;
+    this.properties.innerHTML = "";
+  }
+  showAI() {
+    this.sidebar.innerHTML = `
+            <div class="panel-section">
+                <h3>\uD83E\uDD16 AI Assistant</h3>
+                <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">
+                    Play a song and the AI will analyze it to suggest the best visual settings.
+                </p>
+                <button class="btn btn-primary btn-full" id="btn-ai-analyze">\uD83E\uDDE0 Analyze & Suggest</button>
+            </div>
+            <div id="ai-results" style="display:none;">
+                <div class="panel-section">
+                    <h3>\uD83D\uDCCA Analysis</h3>
+                    <div id="ai-analysis" style="font-size:12px;color:var(--text-secondary);line-height:1.8;"></div>
+                </div>
+                <div class="panel-section">
+                    <h3>\uD83C\uDFA8 Suggestions</h3>
+                    <div id="ai-suggestions"></div>
+                    <button class="btn btn-success btn-full" id="btn-ai-apply" style="margin-top:8px;">✅ Apply Suggestions</button>
+                </div>
+                <div class="panel-section">
+                    <h3>\uD83D\uDCFA YouTube</h3>
+                    <div id="ai-youtube" style="font-size:12px;color:var(--text-secondary);line-height:1.6;"></div>
+                </div>
+            </div>
+        `;
+    this.properties.innerHTML = "";
+  }
+  getCurrentPanel() {
+    return this.currentPanel;
+  }
+}
+
+// src/main.ts
+class VisualSpectrumMakerPRO {
+  audioEngine;
+  canvas;
+  ctx;
+  animationFrame = 0;
+  visualizers = new Map;
+  activeVisualizer = "vertical-bars";
+  particleEngine;
+  lightingEffects;
+  cameraEffects;
+  overlayEffects;
+  backgroundEngine;
+  textOverlay;
+  templateManager;
+  exportEngine;
+  aiAssistant;
+  panelManager;
+  isInitialized = false;
+  audioLoaded = false;
+  constructor() {
+    this.canvas = document.getElementById("preview-canvas");
+    this.ctx = this.canvas.getContext("2d");
+    this.audioEngine = new AudioEngine;
+    this.particleEngine = new ParticleEngine(this.canvas.width, this.canvas.height);
+    this.lightingEffects = new LightingEffects;
+    this.cameraEffects = new CameraEffects;
+    this.overlayEffects = new OverlayEffects;
+    this.backgroundEngine = new BackgroundEngine;
+    this.textOverlay = new TextOverlay;
+    this.templateManager = new TemplateManager;
+    this.exportEngine = new ExportEngine;
+    this.aiAssistant = new AIAssistant;
+    this.panelManager = new PanelManager;
+    this.initialize();
+  }
+  async initialize() {
+    this.resizeCanvas();
+    window.addEventListener("resize", () => this.resizeCanvas());
+    this.initializeVisualizers();
+    this.particleEngine.initialize();
+    this.setupEventListeners();
+    this.panelManager.showPanel("dashboard");
+    this.isInitialized = true;
+    this.startRenderLoop();
+  }
+  resizeCanvas() {
+    const container = document.getElementById("canvas-container");
+    this.canvas.width = container.clientWidth;
+    this.canvas.height = container.clientHeight;
+    this.particleEngine.resize(this.canvas.width, this.canvas.height);
+    this.visualizers.forEach((v) => v.resize(this.canvas.width, this.canvas.height));
+  }
+  initializeVisualizers() {
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+    this.visualizers.set("vertical-bars", new VerticalBarsVisualizer(this.ctx, w, h));
+    this.visualizers.set("circular", new CircularSpectrumVisualizer(this.ctx, w, h));
+    this.visualizers.set("waveform", new WaveformVisualizer(this.ctx, w, h));
+    this.visualizers.set("neon", new NeonSpectrumVisualizer(this.ctx, w, h));
+    this.visualizers.set("mirror-bars", new MirrorBarsVisualizer(this.ctx, w, h));
+    this.visualizers.set("particle-burst", new ParticleBurstVisualizer(this.ctx, w, h));
+    this.visualizers.set("energy-ring", new EnergyRingVisualizer(this.ctx, w, h));
+  }
+  setupEventListeners() {
+    document.querySelectorAll(".nav-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
+        e.target.classList.add("active");
+        const panel = e.target.dataset.panel;
+        if (panel)
+          this.panelManager.showPanel(panel);
+        this.rebindPanelEvents();
+      });
+    });
+    document.getElementById("btn-play").addEventListener("click", () => this.play());
+    document.getElementById("btn-pause").addEventListener("click", () => this.pause());
+    document.getElementById("btn-stop").addEventListener("click", () => this.stop());
+    document.getElementById("seek-bar").addEventListener("input", (e) => {
+      const value = parseFloat(e.target.value);
+      const time = value / 100 * this.audioEngine.getDuration();
+      this.audioEngine.seek(time);
+    });
+    const container = document.getElementById("canvas-container");
+    const overlay = document.getElementById("canvas-overlay");
+    container.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      overlay.classList.add("active");
+    });
+    container.addEventListener("dragleave", () => overlay.classList.remove("active"));
+    container.addEventListener("drop", (e) => {
+      e.preventDefault();
+      overlay.classList.remove("active");
+      this.handleDrop(e);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT")
+        return;
+      switch (e.key) {
+        case " ":
+          e.preventDefault();
+          this.audioEngine.getIsPlaying() ? this.pause() : this.play();
+          break;
+        case "s":
+          this.stop();
+          break;
+        case "r":
+          this.toggleRecording();
+          break;
+        case "1":
+          this.setVisualizer("vertical-bars");
+          break;
+        case "2":
+          this.setVisualizer("circular");
+          break;
+        case "3":
+          this.setVisualizer("waveform");
+          break;
+        case "4":
+          this.setVisualizer("neon");
+          break;
+        case "5":
+          this.setVisualizer("mirror-bars");
+          break;
+        case "6":
+          this.setVisualizer("particle-burst");
+          break;
+        case "7":
+          this.setVisualizer("energy-ring");
+          break;
+      }
+    });
+    this.rebindPanelEvents();
+  }
+  rebindPanelEvents() {
+    setTimeout(() => {
+      this.bindAudioControls();
+      this.bindVisualizerSelection();
+      this.bindBackgroundControls();
+      this.bindParticleControls();
+      this.bindEffectsControls();
+      this.bindTextControls();
+      this.bindTemplateSelection();
+      this.bindExportControls();
+      this.bindAIControls();
+      this.bindAudioFileInput();
+    }, 50);
+  }
+  bindAudioFileInput() {
+    const audioInput = document.getElementById("audio-input");
+    const dropZone = document.getElementById("audio-drop");
+    if (audioInput) {
+      audioInput.addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (file)
+          this.loadAudio(file);
+      });
+    }
+    if (dropZone) {
+      dropZone.addEventListener("click", () => audioInput?.click());
+    }
+  }
+  bindAudioControls() {
+    this.bindSlider("ctrl-sensitivity", "val-sensitivity", (v) => this.audioEngine.setSensitivity(v));
+    this.bindSlider("ctrl-gain", "val-gain", (v) => this.audioEngine.setGain(v));
+    this.bindSlider("ctrl-smoothing", "val-smoothing", (v) => this.audioEngine.setSmoothing(v));
+    this.bindSlider("ctrl-beat", "val-beat", (v) => this.audioEngine.setBeatThreshold(v));
+  }
+  bindVisualizerSelection() {
+    document.querySelectorAll("[data-viz]").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        document.querySelectorAll("[data-viz]").forEach((i) => i.classList.remove("active"));
+        e.currentTarget.classList.add("active");
+        const viz = e.currentTarget.dataset.viz;
+        this.setVisualizer(viz);
+      });
+    });
+    const color1 = document.getElementById("viz-color1");
+    const color2 = document.getElementById("viz-color2");
+    const color3 = document.getElementById("viz-color3");
+    if (color1)
+      color1.addEventListener("input", () => this.updateVisualizerColors());
+    if (color2)
+      color2.addEventListener("input", () => this.updateVisualizerColors());
+    if (color3)
+      color3.addEventListener("input", () => this.updateVisualizerColors());
+    this.bindSlider("ctrl-barcount", "val-barcount", (v) => {
+      const viz = this.visualizers.get(this.activeVisualizer);
+      if (viz)
+        viz.config.barCount = v;
+    });
+    this.bindSlider("ctrl-barwidth", "val-barwidth", (v) => {
+      const viz = this.visualizers.get(this.activeVisualizer);
+      if (viz)
+        viz.config.barWidth = v;
+    });
+    this.bindSlider("ctrl-bargap", "val-bargap", (v) => {
+      const viz = this.visualizers.get(this.activeVisualizer);
+      if (viz)
+        viz.config.barGap = v;
+    });
+    this.bindSlider("ctrl-reactivity", "val-reactivity", (v) => {
+      const viz = this.visualizers.get(this.activeVisualizer);
+      if (viz)
+        viz.config.reactivity = v;
+    });
+    this.bindSlider("ctrl-glow", "val-glow", (v) => {
+      const viz = this.visualizers.get(this.activeVisualizer);
+      if (viz)
+        viz.config.glowIntensity = v;
+    });
+    const mirrorCb = document.getElementById("viz-mirror");
+    if (mirrorCb)
+      mirrorCb.addEventListener("change", () => {
+        const viz = this.visualizers.get(this.activeVisualizer);
+        if (viz)
+          viz.config.mirrorMode = mirrorCb.checked;
+      });
+  }
+  bindBackgroundControls() {
+    document.querySelectorAll("[data-bg]").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        document.querySelectorAll("[data-bg]").forEach((i) => i.classList.remove("active"));
+        e.currentTarget.classList.add("active");
+        const bg = e.currentTarget.dataset.bg;
+        this.backgroundEngine.config.type = bg;
+      });
+    });
+    const bgColor = document.getElementById("bg-color");
+    if (bgColor)
+      bgColor.addEventListener("input", () => {
+        this.backgroundEngine.config.solidColor = bgColor.value;
+      });
+    const grad1 = document.getElementById("bg-grad1");
+    const grad2 = document.getElementById("bg-grad2");
+    const grad3 = document.getElementById("bg-grad3");
+    if (grad1)
+      grad1.addEventListener("input", () => this.updateBgGradient());
+    if (grad2)
+      grad2.addEventListener("input", () => this.updateBgGradient());
+    if (grad3)
+      grad3.addEventListener("input", () => this.updateBgGradient());
+    this.bindSlider("ctrl-bgangle", "val-bgangle", (v) => this.backgroundEngine.config.gradientAngle = v);
+    this.bindSlider("ctrl-bgspeed", "val-bgspeed", (v) => this.backgroundEngine.config.animatedSpeed = v);
+    this.bindSlider("ctrl-bgblur", "val-bgblur", (v) => this.backgroundEngine.config.blur = v);
+    const imgUpload = document.getElementById("bg-image-upload");
+    const imgInput = document.getElementById("bg-image-input");
+    if (imgUpload && imgInput) {
+      imgUpload.addEventListener("click", () => imgInput.click());
+      imgInput.addEventListener("change", () => {
+        const file = imgInput.files?.[0];
+        if (file)
+          this.backgroundEngine.loadImage(file);
+      });
+    }
+    const kenburns = document.getElementById("bg-kenburns");
+    if (kenburns)
+      kenburns.addEventListener("change", () => this.backgroundEngine.config.kenBurns = kenburns.checked);
+    const reactive = document.getElementById("bg-reactive");
+    if (reactive)
+      reactive.addEventListener("change", () => this.backgroundEngine.config.reactToMusic = reactive.checked);
+  }
+  bindParticleControls() {
+    document.querySelectorAll("[data-particle]").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        document.querySelectorAll("[data-particle]").forEach((i) => i.classList.remove("active"));
+        e.currentTarget.classList.add("active");
+        const type = e.currentTarget.dataset.particle;
+        this.particleEngine.setType(type);
+      });
+    });
+    this.bindSlider("ctrl-pcount", "val-pcount", (v) => {
+      this.particleEngine.config.count = v;
+      this.particleEngine.initialize();
+    });
+    this.bindSlider("ctrl-pspeed", "val-pspeed", (v) => this.particleEngine.config.speed = v);
+    this.bindSlider("ctrl-psize", "val-psize", (v) => this.particleEngine.config.size = v);
+    this.bindSlider("ctrl-popacity", "val-popacity", (v) => this.particleEngine.config.opacity = v);
+    this.bindSlider("ctrl-preactivity", "val-preactivity", (v) => this.particleEngine.config.reactivity = v);
+    const reactive = document.getElementById("particle-reactive");
+    if (reactive)
+      reactive.addEventListener("change", () => this.particleEngine.config.reactToMusic = reactive.checked);
+  }
+  bindEffectsControls() {
+    const vignette = document.getElementById("fx-vignette");
+    if (vignette)
+      vignette.addEventListener("change", () => this.lightingEffects.config.vignette = vignette.checked);
+    this.bindSlider("ctrl-vignette", null, (v) => this.lightingEffects.config.vignetteIntensity = v);
+    const bloom = document.getElementById("fx-bloom");
+    if (bloom)
+      bloom.addEventListener("change", () => this.lightingEffects.config.bloom = bloom.checked);
+    this.bindSlider("ctrl-bloom", null, (v) => this.lightingEffects.config.bloomIntensity = v);
+    const lensflare = document.getElementById("fx-lensflare");
+    if (lensflare)
+      lensflare.addEventListener("change", () => this.lightingEffects.config.lensFlare = lensflare.checked);
+    this.bindSlider("ctrl-lensflare", null, (v) => this.lightingEffects.config.lensFlareIntensity = v);
+    const ambient = document.getElementById("fx-ambient");
+    if (ambient)
+      ambient.addEventListener("change", () => this.lightingEffects.config.ambientLight = ambient.checked);
+    const ambientColor = document.getElementById("fx-ambient-color");
+    if (ambientColor)
+      ambientColor.addEventListener("input", () => this.lightingEffects.config.ambientColor = ambientColor.value);
+    const autozoom = document.getElementById("cam-autozoom");
+    if (autozoom)
+      autozoom.addEventListener("change", () => this.cameraEffects.config.autoZoom = autozoom.checked);
+    this.bindSlider("ctrl-autozoom", null, (v) => this.cameraEffects.config.autoZoomSpeed = v);
+    const basszoom = document.getElementById("cam-basszoom");
+    if (basszoom)
+      basszoom.addEventListener("change", () => this.cameraEffects.config.bassZoom = basszoom.checked);
+    this.bindSlider("ctrl-basszoom", null, (v) => this.cameraEffects.config.bassZoomIntensity = v);
+    const beatpunch = document.getElementById("cam-beatpunch");
+    if (beatpunch)
+      beatpunch.addEventListener("change", () => this.cameraEffects.config.beatPunch = beatpunch.checked);
+    this.bindSlider("ctrl-beatpunch", null, (v) => this.cameraEffects.config.beatPunchIntensity = v);
+    const shake = document.getElementById("cam-shake");
+    if (shake)
+      shake.addEventListener("change", () => this.cameraEffects.config.shake = shake.checked);
+    this.bindSlider("ctrl-shake", null, (v) => this.cameraEffects.config.shakeIntensity = v);
+    const rotate = document.getElementById("cam-rotate");
+    if (rotate)
+      rotate.addEventListener("change", () => this.cameraEffects.config.rotate = rotate.checked);
+    this.bindSlider("ctrl-rotate", null, (v) => this.cameraEffects.config.rotateSpeed = v);
+    document.querySelectorAll("[data-overlay]").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        document.querySelectorAll("[data-overlay]").forEach((i) => i.classList.remove("active"));
+        e.currentTarget.classList.add("active");
+        const type = e.currentTarget.dataset.overlay;
+        this.overlayEffects.config.type = type;
+      });
+    });
+    this.bindSlider("ctrl-overlay", "val-overlay", (v) => this.overlayEffects.config.intensity = v);
+  }
+  bindTextControls() {
+    const titleInput = document.getElementById("text-title");
+    const artistInput = document.getElementById("text-artist");
+    if (titleInput)
+      titleInput.addEventListener("input", () => this.textOverlay.setTitle(titleInput.value));
+    if (artistInput)
+      artistInput.addEventListener("input", () => this.textOverlay.setArtist(artistInput.value));
+    this.bindSlider("ctrl-fontsize", "val-fontsize", (v) => {
+      const layer = this.textOverlay.getLayer("title");
+      if (layer)
+        layer.config.fontSize = v;
+    });
+    this.bindSlider("ctrl-texty", "val-texty", (v) => {
+      const layer = this.textOverlay.getLayer("title");
+      if (layer)
+        layer.config.y = v;
+      const artist = this.textOverlay.getLayer("artist");
+      if (artist)
+        artist.config.y = v + 0.05;
+    });
+    this.bindSlider("ctrl-textglow", "val-textglow", (v) => {
+      const layer = this.textOverlay.getLayer("title");
+      if (layer)
+        layer.config.glowIntensity = v;
+    });
+    const textColor = document.getElementById("text-color");
+    if (textColor)
+      textColor.addEventListener("input", () => {
+        const layer = this.textOverlay.getLayer("title");
+        if (layer)
+          layer.config.color = textColor.value;
+      });
+    const glowColor = document.getElementById("text-glow-color");
+    if (glowColor)
+      glowColor.addEventListener("input", () => {
+        const layer = this.textOverlay.getLayer("title");
+        if (layer)
+          layer.config.glowColor = glowColor.value;
+      });
+    document.querySelectorAll("[data-textanim]").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        document.querySelectorAll("[data-textanim]").forEach((i) => i.classList.remove("active"));
+        e.currentTarget.classList.add("active");
+        const anim = e.currentTarget.dataset.textanim;
+        const layer = this.textOverlay.getLayer("title");
+        if (layer)
+          layer.config.animation = anim;
+      });
+    });
+  }
+  bindTemplateSelection() {
+    document.querySelectorAll("[data-template]").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        document.querySelectorAll("[data-template]").forEach((i) => i.classList.remove("active"));
+        e.currentTarget.classList.add("active");
+        const templateId = e.currentTarget.dataset.template;
+        this.applyTemplate(templateId);
+      });
+    });
+    const randomBtn = document.getElementById("btn-random-preset");
+    if (randomBtn)
+      randomBtn.addEventListener("click", () => {
+        const templates = this.templateManager.getTemplates();
+        const random = templates[Math.floor(Math.random() * templates.length)];
+        this.applyTemplate(random.id);
+      });
+  }
+  bindExportControls() {
+    const startBtn = document.getElementById("btn-start-record");
+    const stopBtn = document.getElementById("btn-stop-record");
+    if (startBtn)
+      startBtn.addEventListener("click", () => this.startRecording());
+    if (stopBtn)
+      stopBtn.addEventListener("click", () => this.stopRecording());
+    const format = document.getElementById("export-format");
+    if (format)
+      format.addEventListener("change", () => {
+        this.exportEngine.config.format = format.value;
+      });
+    const resolution = document.getElementById("export-resolution");
+    if (resolution)
+      resolution.addEventListener("change", () => {
+        const res = ExportEngine.RESOLUTIONS.find((r) => r.label.startsWith(resolution.value)) || ExportEngine.RESOLUTIONS[1];
+        this.exportEngine.config.resolution = res;
+      });
+    const fps = document.getElementById("export-fps");
+    if (fps)
+      fps.addEventListener("change", () => {
+        this.exportEngine.config.fps = parseInt(fps.value);
+      });
+    this.bindSlider("ctrl-quality", "val-quality", (v) => {
+      this.exportEngine.config.quality = v;
+      const display = document.getElementById("val-quality");
+      if (display)
+        display.textContent = Math.round(v * 100) + "%";
+    });
+    const filename = document.getElementById("export-filename");
+    if (filename)
+      filename.addEventListener("input", () => {
+        this.exportEngine.config.filename = filename.value;
+      });
+  }
+  bindAIControls() {
+    const analyzeBtn = document.getElementById("btn-ai-analyze");
+    if (analyzeBtn)
+      analyzeBtn.addEventListener("click", () => {
+        const recommendation = this.aiAssistant.getRecommendation();
+        this.showAIResults(recommendation);
+      });
+    const applyBtn = document.getElementById("btn-ai-apply");
+    if (applyBtn)
+      applyBtn.addEventListener("click", () => {
+        const rec = this.aiAssistant.getRecommendation();
+        this.applyTemplate(rec.template);
+      });
+  }
+  bindSlider(sliderId, displayId, callback) {
+    const slider = document.getElementById(sliderId);
+    if (!slider)
+      return;
+    slider.addEventListener("input", () => {
+      const value = parseFloat(slider.value);
+      if (displayId) {
+        const display = document.getElementById(displayId);
+        if (display)
+          display.textContent = value.toString();
+      }
+      callback(value);
+    });
+  }
+  updateVisualizerColors() {
+    const color1 = document.getElementById("viz-color1")?.value || "#6c5ce7";
+    const color2 = document.getElementById("viz-color2")?.value || "#a29bfe";
+    const color3 = document.getElementById("viz-color3")?.value || "#00f5ff";
+    const viz = this.visualizers.get(this.activeVisualizer);
+    if (viz) {
+      viz.config.color = color1;
+      viz.config.gradientColors = [color1, color2, color3];
+    }
+  }
+  updateBgGradient() {
+    const c1 = document.getElementById("bg-grad1")?.value || "#0a0a1a";
+    const c2 = document.getElementById("bg-grad2")?.value || "#1a0a2e";
+    const c3 = document.getElementById("bg-grad3")?.value || "#0a1a2e";
+    this.backgroundEngine.config.gradientColors = [c1, c2, c3];
+  }
+  async loadAudio(file) {
+    try {
+      await this.audioEngine.loadFile(file);
+      this.audioLoaded = true;
+      this.aiAssistant.reset();
+      const titleFromFile = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+      this.textOverlay.setTitle(titleFromFile);
+      this.play();
+    } catch (error) {
+      console.error("Error loading audio:", error);
+    }
+  }
+  play() {
+    this.audioEngine.play();
+  }
+  pause() {
+    this.audioEngine.pause();
+  }
+  stop() {
+    this.audioEngine.stop();
+  }
+  setVisualizer(id) {
+    if (this.visualizers.has(id)) {
+      this.activeVisualizer = id;
+    }
+  }
+  handleDrop(e) {
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0)
+      return;
+    const file = files[0];
+    if (file.type.startsWith("audio/")) {
+      this.loadAudio(file);
+    } else if (file.type.startsWith("image/")) {
+      this.backgroundEngine.loadImage(file);
+    }
+  }
+  applyTemplate(templateId) {
+    const template = this.templateManager.getTemplate(templateId);
+    if (!template)
+      return;
+    if (this.visualizers.has(template.visualizer)) {
+      this.activeVisualizer = template.visualizer;
+    }
+    this.visualizers.forEach((viz) => {
+      viz.config.gradientColors = template.colors;
+      viz.config.color = template.colors[0];
+    });
+    if (template.background) {
+      Object.assign(this.backgroundEngine.config, template.background);
+    }
+    if (template.particles && template.particles.type !== "none") {
+      this.particleEngine.config.type = template.particles.type;
+      if (template.particles.count)
+        this.particleEngine.config.count = template.particles.count;
+      this.particleEngine.initialize();
+    }
+    if (template.lighting) {
+      Object.assign(this.lightingEffects.config, template.lighting);
+    }
+    if (template.camera) {
+      Object.assign(this.cameraEffects.config, template.camera);
+    }
+    if (template.overlay) {
+      Object.assign(this.overlayEffects.config, template.overlay);
+    }
+    const desc = document.getElementById("template-desc");
+    if (desc)
+      desc.textContent = `${template.name}: ${template.description}`;
+  }
+  startRecording() {
+    this.exportEngine.startRecording(this.canvas, (progress) => {
+      const progressBar = document.getElementById("export-progress-bar");
+      const status = document.getElementById("export-status");
+      const progressDiv = document.getElementById("export-progress");
+      if (progressDiv)
+        progressDiv.style.display = "block";
+      if (progressBar)
+        progressBar.style.width = `${progress.progress * 100}%`;
+      if (status)
+        status.textContent = `${progress.status} - ${Math.round(progress.progress * 100)}%`;
+      if (progress.status === "complete") {
+        setTimeout(() => {
+          if (progressDiv)
+            progressDiv.style.display = "none";
+          const startBtn2 = document.getElementById("btn-start-record");
+          const stopBtn2 = document.getElementById("btn-stop-record");
+          if (startBtn2)
+            startBtn2.style.display = "block";
+          if (stopBtn2)
+            stopBtn2.style.display = "none";
+        }, 2000);
+      }
+    });
+    const startBtn = document.getElementById("btn-start-record");
+    const stopBtn = document.getElementById("btn-stop-record");
+    if (startBtn)
+      startBtn.style.display = "none";
+    if (stopBtn)
+      stopBtn.style.display = "block";
+    if (!this.audioEngine.getIsPlaying() && this.audioLoaded) {
+      this.play();
+    }
+  }
+  stopRecording() {
+    this.exportEngine.stopRecording();
+  }
+  toggleRecording() {
+    if (this.exportEngine.getIsRecording()) {
+      this.stopRecording();
+    } else {
+      this.startRecording();
+    }
+  }
+  showAIResults(rec) {
+    const resultsDiv = document.getElementById("ai-results");
+    const analysisDiv = document.getElementById("ai-analysis");
+    const suggestionsDiv = document.getElementById("ai-suggestions");
+    const youtubeDiv = document.getElementById("ai-youtube");
+    if (resultsDiv)
+      resultsDiv.style.display = "block";
+    if (analysisDiv) {
+      analysisDiv.innerHTML = `
+                <b>Genre:</b> ${rec.genre}<br>
+                <b>Mood:</b> ${rec.mood}<br>
+                <b>Energy:</b> ${rec.energy}<br>
+            `;
+    }
+    if (suggestionsDiv) {
+      suggestionsDiv.innerHTML = `
+                <div class="panel-item" style="margin-bottom:4px;text-align:left;padding:8px;">
+                    \uD83C\uDFA8 Template: <b>${rec.template}</b>
+                </div>
+                <div class="panel-item" style="margin-bottom:4px;text-align:left;padding:8px;">
+                    \uD83D\uDCCA Visualizer: <b>${rec.visualizer}</b>
+                </div>
+                <div class="panel-item" style="margin-bottom:4px;text-align:left;padding:8px;">
+                    ✨ Particles: <b>${rec.particles}</b>
+                </div>
+                <div class="panel-item" style="margin-bottom:4px;text-align:left;padding:8px;">
+                    \uD83D\uDDBC️ Background: <b>${rec.background}</b>
+                </div>
+                <div style="display:flex;gap:4px;margin-top:8px;">
+                    ${rec.colors.map((c) => `<div style="width:24px;height:24px;border-radius:4px;background:${c};border:1px solid rgba(255,255,255,0.2);"></div>`).join("")}
+                </div>
+            `;
+    }
+    if (youtubeDiv) {
+      youtubeDiv.innerHTML = `
+                <b>Title:</b><br>${rec.youtubeTitle}<br><br>
+                <b>Hashtags:</b><br>${rec.hashtags.join(" ")}<br><br>
+                <b>Description:</b><br>${rec.description}
+            `;
+    }
+  }
+  startRenderLoop() {
+    const render = () => {
+      this.animationFrame = requestAnimationFrame(render);
+      this.renderFrame();
+    };
+    render();
+  }
+  renderFrame() {
+    const data = this.audioEngine.analyze();
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+    if (this.audioEngine.getIsPlaying()) {
+      this.aiAssistant.analyze(data);
+    }
+    this.ctx.clearRect(0, 0, w, h);
+    this.ctx.save();
+    const transform = this.cameraEffects.getTransform(data);
+    this.cameraEffects.applyTransform(this.ctx, w, h, transform);
+    this.backgroundEngine.render(this.ctx, w, h, data);
+    this.particleEngine.update(data);
+    this.particleEngine.render(this.ctx);
+    const visualizer = this.visualizers.get(this.activeVisualizer);
+    if (visualizer) {
+      visualizer.render(data);
+    }
+    this.ctx.restore();
+    this.lightingEffects.apply(this.ctx, w, h, data);
+    this.overlayEffects.apply(this.ctx, w, h, data);
+    this.textOverlay.render(this.ctx, w, h, data);
+    this.updateMeters(data);
+    this.updateTransport();
+    if (this.exportEngine.getIsRecording()) {
+      this.exportEngine.updateProgress(this.audioEngine.getCurrentTime(), this.audioEngine.getDuration());
+    }
+  }
+  updateMeters(data) {
+    const bassMeter = document.getElementById("meter-bass");
+    const midMeter = document.getElementById("meter-mid");
+    const trebleMeter = document.getElementById("meter-treble");
+    const overallMeter = document.getElementById("meter-overall");
+    const bpmDisplay = document.getElementById("bpm-display");
+    if (bassMeter)
+      bassMeter.style.width = `${data.bassLevel * 100}%`;
+    if (midMeter)
+      midMeter.style.width = `${data.midLevel * 100}%`;
+    if (trebleMeter)
+      trebleMeter.style.width = `${data.trebleLevel * 100}%`;
+    if (overallMeter)
+      overallMeter.style.width = `${data.overallLevel * 100}%`;
+    if (bpmDisplay)
+      bpmDisplay.textContent = `BPM: ${data.bpm || "--"}`;
+  }
+  updateTransport() {
+    const current = this.audioEngine.getCurrentTime();
+    const duration = this.audioEngine.getDuration();
+    const timeDisplay = document.getElementById("time-display");
+    const seekBar = document.getElementById("seek-bar");
+    if (timeDisplay) {
+      timeDisplay.textContent = `${this.formatTime(current)} / ${this.formatTime(duration)}`;
+    }
+    if (seekBar && duration > 0) {
+      seekBar.value = (current / duration * 100).toString();
+    }
+  }
+  formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  new VisualSpectrumMakerPRO;
+});
+
+</script>
+</body>
+</html>

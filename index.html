@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Spectrum Maker PRO V1</title>
+    <link rel="stylesheet" href="src/styles/main.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <header id="header">
+            <div class="logo">
+                <span class="logo-icon">🎵</span>
+                <h1>Visual Spectrum Maker <span class="pro">PRO</span></h1>
+            </div>
+            <nav id="main-nav">
+                <button class="nav-btn active" data-panel="dashboard">Dashboard</button>
+                <button class="nav-btn" data-panel="spectrum">Spectrum</button>
+                <button class="nav-btn" data-panel="background">Background</button>
+                <button class="nav-btn" data-panel="particles">Particles</button>
+                <button class="nav-btn" data-panel="effects">Effects</button>
+                <button class="nav-btn" data-panel="text">Text</button>
+                <button class="nav-btn" data-panel="templates">Templates</button>
+                <button class="nav-btn" data-panel="export">Export</button>
+                <button class="nav-btn" data-panel="ai">AI Assistant</button>
+            </nav>
+        </header>
+        <main id="main-content">
+            <aside id="sidebar"></aside>
+            <section id="canvas-container">
+                <canvas id="preview-canvas"></canvas>
+                <div id="canvas-overlay">
+                    <span class="drop-text">Drop MP3 or Background Here</span>
+                </div>
+            </section>
+            <aside id="properties-panel"></aside>
+        </main>
+        <footer id="footer">
+            <div id="timeline"></div>
+            <div id="transport-controls">
+                <button id="btn-play">▶</button>
+                <button id="btn-pause">⏸</button>
+                <button id="btn-stop">⏹</button>
+                <span id="time-display">00:00 / 00:00</span>
+                <input type="range" id="seek-bar" min="0" max="100" value="0">
+                <span id="bpm-display">BPM: --</span>
+            </div>
+        </footer>
+    </div>
+    <script type="module" src="dist/main.js"></script>
+</body>
+</html>
