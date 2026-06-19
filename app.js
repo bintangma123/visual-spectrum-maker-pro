@@ -1,8 +1,53 @@
 "use strict";
 /**
- * Visual Spectrum Maker PRO V1.5 - Professional Editor
- * Pure HTML/CSS/JS. Zero dependencies. Open index.html to run.
+ * Visual Spectrum Maker PRO V2.0 Foundation
+ * Architecture: Engine-based modular system
+ * 
+ * ENGINES:
+ *  - AudioEngine   (Audio)    : Web Audio API, FFT, beat detection
+ *  - RendererEngine (App)     : Canvas rendering loop, layer compositing
+ *  - LayerEngine   (S.layers) : Layer ordering, visibility, opacity
+ *  - ObjectEngine  (V/BG/PT/TXT/LOGO) : Visual objects and their state
+ *  - TransformEngine (CAM)    : Camera, position, scale, rotation, flip
+ *  - EffectEngine  (FX)       : Post-processing effects
+ *  - ExportEngine  (EXP)      : MediaRecorder video export
+ *  - PresetEngine  (PM)       : Save/load/import/export presets
+ *  - UIEngine      (P/App.show/App.bind) : Panel generation and event binding
+ *  - PluginEngine  (Plugins)  : Extensibility hooks for V2/V3 features
+ * 
+ * Each engine exposes: init(), update(data), render(ctx,w,h,data), destroy()
+ * Engines are independent — they communicate only through the shared State (S).
+ * The PluginEngine allows registering hooks at any render phase.
  */
+
+// === ENGINE REGISTRY ===
+// Central registry for all engines. Future features plug in here.
+const EngineRegistry = {
+    _engines: {},
+    _plugins: [],
+    register(name, engine) { this._engines[name] = engine; },
+    get(name) { return this._engines[name]; },
+    all() { return Object.values(this._engines); },
+    // Plugin hooks: 'preRender', 'postRender', 'preAudio', 'postAudio', 'onBeat', 'onLoad'
+    hook(phase, fn) { this._plugins.push({ phase, fn }); },
+    emit(phase, ...args) { for (const p of this._plugins) { if (p.phase === phase) p.fn(...args); } }
+};
+
+// === PLUGIN ENGINE ===
+// V2/V3 features register here without modifying core code
+const Plugins = {
+    registered: [],
+    register(plugin) {
+        // plugin: { name, init?, onRender?, onBeat?, onLoad?, destroy? }
+        this.registered.push(plugin);
+        if (plugin.init) plugin.init();
+        if (plugin.onRender) EngineRegistry.hook('postRender', plugin.onRender);
+        if (plugin.onBeat) EngineRegistry.hook('onBeat', plugin.onBeat);
+        if (plugin.onLoad) EngineRegistry.hook('onLoad', plugin.onLoad);
+    },
+    list() { return this.registered.map(p => p.name); }
+};
+EngineRegistry.register('plugin', Plugins);
 
 // Polyfill
 if(!CanvasRenderingContext2D.prototype.roundRect){CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){const rad=Array.isArray(r)?r[0]||0:r||0;this.moveTo(x+rad,y);this.lineTo(x+w-rad,y);this.quadraticCurveTo(x+w,y,x+w,y+rad);this.lineTo(x+w,y+h);this.lineTo(x,y+h);this.lineTo(x,y+rad);this.quadraticCurveTo(x,y,x+rad,y);this.closePath();};}
@@ -29,9 +74,10 @@ this.an.getByteFrequencyData(this.freq);this.an.getByteTimeDomainData(this.time)
 const l=this.freq.length,s=this.cfg.sens,bE=Math.floor(l*.1),mE=Math.floor(l*.5);let b=0,m=0,t=0,a=0;
 for(let i=0;i<l;i++){const v=(this.freq[i]/255)*s;a+=v;if(i<bE)b+=v;else if(i<mE)m+=v;else t+=v;}
 b=Math.min(b/bE,1);m=Math.min(m/(mE-bE),1);t=Math.min(t/(l-mE),1);a=Math.min(a/l,1);
-const beat=this._beat(b);return{bass:b,mid:m,treble:t,all:a,beat,freq:this.freq,time:this.time,bpm:this.bpm};},
+const beat=this._beat(b);if(beat)EngineRegistry.emit('onBeat',{bass:b,mid:m,treble:t});return{bass:b,mid:m,treble:t,all:a,beat,freq:this.freq,time:this.time,bpm:this.bpm};},
 _beat(lv){const n=performance.now();if(lv>this.cfg.beat&&(n-this.lbt)>200){if(this.lbt>0){this.bh.push(n-this.lbt);if(this.bh.length>20)this.bh.shift();this.bpm=Math.round(60000/(this.bh.reduce((a,b)=>a+b,0)/this.bh.length));}this.lbt=n;return true;}return false;}
 };
+EngineRegistry.register('audio', Audio);
 
 
 // === STATE ===
@@ -87,26 +133,32 @@ diamond(c,w,h,d){const sm=SE.get(d.freq),cx=w/2,cy=h/2,n=S.bars;c.shadowBlur=S.g
 hexagon(c,w,h,d){const sm=SE.get(d.freq),cx=w/2,cy=h/2;c.shadowBlur=S.glow*8;c.shadowColor=S.col[0];for(let ring=0;ring<4;ring++){const idx=Math.floor(ring*sm.length/4),v=sm[idx],r=50+ring*40+v*30;c.strokeStyle=SE.col(ring,4);c.lineWidth=2+v*2;c.beginPath();for(let i=0;i<=6;i++){const a=i*Math.PI/3+S.t*S.rotSpd*(ring%2?1:-1);const px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;i===0?c.moveTo(px,py):c.lineTo(px,py);}c.closePath();c.stroke();}c.shadowBlur=0;},
 minimal(c,w,h,d){const sm=SE.get(d.freq),n=16,cy=h/2;c.shadowBlur=S.glow*6;c.shadowColor=S.col[0];c.lineWidth=2;c.strokeStyle=S.col[0];c.beginPath();for(let i=0;i<n;i++){const idx=Math.floor(i*sm.length/n),v=sm[idx],x=w*.1+i*(w*.8/(n-1)),y=cy-v*h*.3;i===0?c.moveTo(x,y):c.lineTo(x,y);}c.stroke();c.fillStyle=S.col[2];for(let i=0;i<n;i++){const idx=Math.floor(i*sm.length/n),v=sm[idx],x=w*.1+i*(w*.8/(n-1)),y=cy-v*h*.3;c.beginPath();c.arc(x,y,3+v*4,0,Math.PI*2);c.fill();}c.shadowBlur=0;}
 };
-
+EngineRegistry.register('spectrum', {engine: SE, visualizers: V});
 
 // === BACKGROUND ===
+// ObjectEngine: Background
 const BG={t:0,render(c,w,h,d){this.t+=.016;switch(S.bgType){case'solid':c.fillStyle=S.bgColor;c.fillRect(0,0,w,h);break;case'gradient':{const a=S.bgAngle*Math.PI/180,g=c.createLinearGradient(w/2+Math.cos(a)*w/2,h/2+Math.sin(a)*h/2,w/2-Math.cos(a)*w/2,h/2-Math.sin(a)*h/2);S.bgGrad.forEach((cl,i)=>g.addColorStop(i/(S.bgGrad.length-1),cl));c.fillStyle=g;c.fillRect(0,0,w,h);break;}case'animated':{const sp=S.bgAnimSpd,cx=w/2+Math.cos(this.t*sp)*w*.3,cy=h/2+Math.sin(this.t*sp)*h*.3,r=Math.max(w,h)*(.8+(S.bgReact?d.bass*.2:0));const g=c.createRadialGradient(cx,cy,0,w/2,h/2,r);S.bgGrad.forEach((cl,i)=>g.addColorStop(i/(S.bgGrad.length-1),cl));c.fillStyle=g;c.fillRect(0,0,w,h);break;}case'image':if(S.bgImg){const z=S.bgReact?1+d.bass*.02:1;c.save();c.translate(w/2,h/2);c.scale(z,z);c.translate(-w/2,-h/2);const iw=S.bgImg.width,ih=S.bgImg.height,sc=Math.max(w/iw,h/ih),dw=iw*sc,dh=ih*sc;c.drawImage(S.bgImg,(w-dw)/2,(h-dh)/2,dw,dh);c.restore();}else{c.fillStyle='#000';c.fillRect(0,0,w,h);}break;case'video':c.fillStyle='#000';c.fillRect(0,0,w,h);if(S.bgVid&&S.bgVid.readyState>=2&&S.bgVidVis){c.save();c.globalAlpha=S.bgVidOp;if(S.bgVidBlur>0||S.bgVidBr!==1)c.filter=`brightness(${S.bgVidBr}) blur(${S.bgVidBlur}px)`;const z=S.bgReact?1+d.bass*.02:1;c.translate(w/2,h/2);c.scale(z,z);c.translate(-w/2,-h/2);const vw=S.bgVid.videoWidth||w,vh=S.bgVid.videoHeight||h,sc=Math.max(w/vw,h/vh),dw=vw*sc,dh=vh*sc;c.drawImage(S.bgVid,(w-dw)/2,(h-dh)/2,dw,dh);c.restore();}break;default:c.fillStyle='#000';c.fillRect(0,0,w,h);}}};
 
 // === PARTICLES ===
+// ObjectEngine: Particles
 const PT={list:[],init(){this.list=[];for(let i=0;i<S.pCount;i++)this.list.push(this._c());},_c(edge){const w=App.cv?App.cv.width:1920,h=App.cv?App.cv.height:1080,t=S.pt;let x=Math.random()*w,y=Math.random()*h,vx=0,vy=0;switch(t){case'snow':vx=(Math.random()-.5)*.5;vy=.5+Math.random()*1.5;if(edge)y=-10;break;case'rain':vx=-1;vy=6+Math.random()*4;if(edge)y=-10;break;case'fireflies':vx=(Math.random()-.5)*1.5;vy=(Math.random()-.5)*1.5;break;case'bubbles':vx=(Math.random()-.5)*.5;vy=-(0.5+Math.random());if(edge)y=h+10;break;case'stars':case'galaxy':vx=0;vy=0;break;case'spark':vx=(Math.random()-.5)*3;vy=(Math.random()-.5)*3;break;case'confetti':vx=(Math.random()-.5)*2;vy=1+Math.random()*2;if(edge)y=-10;break;case'notes':vx=(Math.random()-.5);vy=-.5-Math.random();if(edge)y=h+10;break;default:vx=(Math.random()-.5)*.8;vy=(Math.random()-.5)*.8;}return{x,y,vx,vy,sz:S.pSize*(.5+Math.random()),op:.3+Math.random()*.5,ph:Math.random()*Math.PI*2};},
 update(d){const w=App.cv.width,h=App.cv.height,mf=S.pReact?d.all*1.5:0;for(let i=this.list.length-1;i>=0;i--){const p=this.list[i],spd=S.pSpd*(1+mf);p.x+=p.vx*spd;p.y+=p.vy*spd;p.ph+=.02;if(S.pt==='fireflies'){p.vx+=(Math.random()-.5)*.08;p.vy+=(Math.random()-.5)*.08;p.op=.2+Math.sin(p.ph)*.5;}if(S.pt==='stars'||S.pt==='galaxy'){p.op=.3+Math.sin(p.ph)*.4;p.sz=S.pSize*(.8+d.bass*.4);}if(p.x<-30||p.x>w+30||p.y<-30||p.y>h+30)this.list[i]=this._c(true);}while(this.list.length<S.pCount)this.list.push(this._c());if(this.list.length>S.pCount)this.list.length=S.pCount;},
 render(c){for(const p of this.list){c.globalAlpha=p.op*.7;c.fillStyle='#fff';c.shadowBlur=S.pt==='fireflies'?10:3;c.shadowColor=S.col[1];if(S.pt==='rain'){c.strokeStyle='rgba(200,220,255,.6)';c.lineWidth=1;c.beginPath();c.moveTo(p.x,p.y);c.lineTo(p.x+1,p.y+p.sz*3);c.stroke();}else if(S.pt==='notes'){c.font=`${p.sz*4}px serif`;c.fillText('♪',p.x,p.y);}else if(S.pt==='confetti'){c.fillStyle=SE.col(Math.floor(p.ph*10)%20,20);c.fillRect(p.x,p.y,p.sz*2,p.sz);}else{c.beginPath();c.arc(p.x,p.y,p.sz,0,Math.PI*2);c.fill();}}c.globalAlpha=1;c.shadowBlur=0;}};
 
 // === EFFECTS ===
+// EffectEngine
 const FX={apply(c,w,h,d){if(S.fx.vig){const it=S.fx.vigA*(1+d.bass*.2),g=c.createRadialGradient(w/2,h/2,w*.3,w/2,h/2,w*.7);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(0,0,0,${it})`);c.fillStyle=g;c.fillRect(0,0,w,h);}if(S.fx.bloom){c.save();c.globalCompositeOperation='screen';c.globalAlpha=S.fx.bloomA*d.all;c.filter=`blur(8px)`;c.drawImage(c.canvas,0,0);c.restore();}if(S.fx.chroma){c.save();c.globalCompositeOperation='screen';c.globalAlpha=.05;const o=S.fx.chromaA;c.drawImage(c.canvas,o,0);c.drawImage(c.canvas,-o,0);c.restore();}switch(S.fx.over){case'grain':{c.globalAlpha=S.fx.overA*.08;const s=8;for(let x=0;x<w;x+=s)for(let y=0;y<h;y+=s){c.fillStyle=Math.random()>.5?'#ccc':'#333';c.fillRect(x,y,s,s);}c.globalAlpha=1;break;}case'scanline':c.globalAlpha=S.fx.overA*.2;c.fillStyle='rgba(0,0,0,.4)';for(let y=0;y<h;y+=4)c.fillRect(0,y,w,2);c.globalAlpha=1;break;case'vhs':if(Math.random()<S.fx.overA*.05){try{const y=Math.random()*h,sl=3+Math.random()*6;const img=c.getImageData(0,Math.floor(y),w,Math.floor(sl));c.putImageData(img,Math.floor((Math.random()-.5)*10),Math.floor(y));}catch(e){}}c.globalAlpha=S.fx.overA*.06;c.fillStyle='rgba(255,0,0,.5)';c.fillRect(2,0,w,h);c.fillStyle='rgba(0,255,255,.5)';c.fillRect(-2,0,w,h);c.globalAlpha=1;break;case'crt':c.globalAlpha=S.fx.overA*.15;c.fillStyle='rgba(0,0,0,.3)';for(let y=0;y<h;y+=3)c.fillRect(0,y,w,1);const grd=c.createRadialGradient(w/2,h/2,w*.35,w/2,h/2,w*.7);grd.addColorStop(0,'rgba(0,0,0,0)');grd.addColorStop(1,`rgba(0,0,0,${S.fx.overA*.4})`);c.fillStyle=grd;c.fillRect(0,0,w,h);c.globalAlpha=1;break;case'bokeh':c.save();c.globalCompositeOperation='screen';for(let i=0;i<6;i++){const x=(Math.sin(S.t*.3+i*1.7)*.5+.5)*w,y=(Math.cos(S.t*.2+i*2.3)*.5+.5)*h,sz=20+Math.sin(S.t+i)*12+d.bass*15;const g=c.createRadialGradient(x,y,0,x,y,sz);g.addColorStop(0,'rgba(162,155,254,.06)');g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.beginPath();c.arc(x,y,sz,0,Math.PI*2);c.fill();}c.restore();break;case'lensflare':if(d.bass>.4){c.save();c.globalCompositeOperation='screen';const it=(d.bass-.4)*S.fx.overA;const g=c.createRadialGradient(w*.6,h*.3,0,w*.6,h*.3,100+it*200);g.addColorStop(0,`rgba(255,255,255,${it*.4})`);g.addColorStop(.3,`rgba(200,180,255,${it*.2})`);g.addColorStop(1,'rgba(0,0,0,0)');c.fillStyle=g;c.fillRect(0,0,w,h);c.restore();}break;}}};
 
 // === CAMERA ===
+// TransformEngine: Camera
 const CAM={apply(c,w,h,d){let tx=0,ty=0,sc=1;if(S.cam.bassZ)sc+=d.bass*S.cam.bassA;if(S.cam.punch){if(d.beat)S.punchD=S.cam.punchA;sc+=S.punchD;S.punchD*=.9;}if(S.cam.shake){const i=S.cam.shakeA*d.bass;tx=(Math.random()-.5)*i;ty=(Math.random()-.5)*i;}if(S.cam.orbit){const a=S.t*S.cam.orbitA;tx+=Math.sin(a)*10;ty+=Math.cos(a)*8;}c.translate(w/2+tx,h/2+ty);c.scale(sc,sc);c.translate(-w/2,-h/2);}};
 
 // === TEXT ===
+// ObjectEngine: Text
 const TXT={t:0,render(c,w,h,d){this.t+=.016;const by=h*.82;if(S.txt)this._d(c,w,S.txt,by,S.txtSize,'700',d);if(S.art){c.globalAlpha=.7;this._d(c,w,S.art,by+38,15,'400',d);c.globalAlpha=1;}},_d(c,w,txt,y,sz,wt,d){let x=w/2,al=1,sc=1;switch(S.txtAnim){case'fade':al=.4+Math.sin(this.t*2)*.6;break;case'slide':x+=Math.sin(this.t)*30;break;case'bounce':y+=Math.abs(Math.sin(this.t*3))*-12;break;case'zoom':sc=1+Math.sin(this.t*1.5)*.1;break;case'pulse':sc=1+d.bass*.1;break;case'typewriter':txt=txt.substring(0,Math.floor((this.t*3)%txt.length)+1);break;case'neon':S.txtGlow=.5+Math.sin(this.t*4)*.5;break;case'glitch':if(Math.random()>.95){x+=(Math.random()-.5)*8;y+=(Math.random()-.5)*4;}break;}c.save();c.globalAlpha=al;c.translate(x,y);c.scale(sc,sc);c.font=`${wt} ${sz}px system-ui,sans-serif`;c.textAlign='center';c.textBaseline='middle';if(S.txtGlow>0){c.shadowBlur=S.txtGlow*20;c.shadowColor=S.col[0];}c.fillStyle=S.txtCol;c.fillText(txt,0,0);c.restore();}};
 
 // === LOGO ===
+// ObjectEngine: Logo
 const LOGO={render(c,w,h,d){if(!S.logo)return;const s=S.logoS,x=S.logoX*w-s/2,y=S.logoY*h-s/2;c.save();c.globalAlpha=S.logoOp;if(S.logoGlow>0){c.shadowBlur=S.logoGlow*15;c.shadowColor=S.col[0];}const pulse=S.cam.punch&&d.beat?1.05:1;c.translate(x+s/2,y+s/2);c.scale(pulse,pulse);c.rotate(S.logoRot);c.translate(-s/2,-s/2);c.drawImage(S.logo,0,0,s,s);c.restore();}};
 
 
@@ -115,6 +167,7 @@ const TPL=[{id:'spotify',name:'Spotify',ic:'🟢',viz:'bars',bg:'gradient',gr:['
 function applyTpl(id){const t=TPL.find(x=>x.id===id);if(!t)return;S.viz=t.viz;S.bgType=t.bg;S.bgGrad=[...t.gr];S.bgColor=t.gr[0];S.col=[...t.col];if(t.pt!=='none'){S.pt=t.pt;S.pCount=80;PT.init();}else S.pCount=0;S.fx.over=t.fx;N.show('Template: '+t.name,'i');}
 
 // === PRESET MANAGER ===
+// PresetEngine
 const PM={SK:'vsm_presets',LK:'vsm_last',
 _ser(){return{viz:S.viz,bgType:S.bgType,bgColor:S.bgColor,bgGrad:[...S.bgGrad],bgAngle:S.bgAngle,bgAnimSpd:S.bgAnimSpd,bgReact:S.bgReact,bgVidOp:S.bgVidOp,bgVidBr:S.bgVidBr,bgVidBlur:S.bgVidBlur,bgVidSpd:S.bgVidSpd,bgVidLoop:S.bgVidLoop,bgVidMute:S.bgVidMute,bgVidVis:S.bgVidVis,pt:S.pt,pCount:S.pCount,pSpd:S.pSpd,pSize:S.pSize,pReact:S.pReact,col:[...S.col],bars:S.bars,glow:S.glow,react:S.react,mirror:S.mirror,bw:S.bw,bg2:S.bg2,rad:S.rad,rotSpd:S.rotSpd,peak:S.peak,peakD:S.peakD,rainbow:S.rainbow,autoCol:S.autoCol,smooth:S.smooth,vx:S.vx,vy:S.vy,vs:S.vs,vsw:S.vsw,vsh:S.vsh,vr:S.vr,vaRot:S.vaRot,vaSpd:S.vaSpd,flipH:S.flipH,flipV:S.flipV,fx:{...S.fx},cam:{...S.cam},txt:S.txt,art:S.art,txtAnim:S.txtAnim,txtCol:S.txtCol,txtGlow:S.txtGlow,txtSize:S.txtSize,logoS:S.logoS,logoX:S.logoX,logoY:S.logoY,logoGlow:S.logoGlow,logoOp:S.logoOp,logoRot:S.logoRot,layers:S.layers.map(l=>({...l}))};},
 _apply(d){const skip=['bgImg','bgVid','logo','vizP','t','punchD','sel','expName','canvasZoom','canvasPanX','canvasPanY','showGrid','showSafe','snapGrid','snapCenter','expRes','expFps'];for(const k in d){if(skip.includes(k))continue;if(k==='layers')S.layers=d.layers.map(l=>({...l}));else if(k==='bgGrad'||k==='col')S[k]=[...d[k]];else if(k==='fx'||k==='cam')Object.assign(S[k],d[k]);else S[k]=d[k];}PT.init();},
@@ -131,6 +184,7 @@ restore(){try{const d=JSON.parse(localStorage.getItem(this.LK));if(d)this._apply
 };
 
 // === EXPORTER ===
+// ExportEngine
 const EXP={rec:null,chunks:[],recording:false,
 start(cv){this.chunks=[];const stream=cv.captureStream(S.expFps);const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';this.rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8000000});this.rec.ondataavailable=e=>{if(e.data.size>0)this.chunks.push(e.data);};this.rec.onstop=()=>this._save();this.rec.start(100);this.recording=true;document.getElementById('rec-badge').classList.remove('hidden');N.show('Recording...','i');},
 stop(){if(this.rec&&this.recording){this.rec.stop();this.recording=false;}document.getElementById('rec-badge').classList.add('hidden');},
@@ -138,6 +192,7 @@ _save(){const b=new Blob(this.chunks,{type:'video/webm'});const u=URL.createObje
 
 
 // === PANELS ===
+// UIEngine
 const TABS=['dashboard','spectrum','transform','background','bgvideo','particles','effects','camera','text','layers','presets','export'];
 const P={
 dashboard(){return`<div class="sec"><h3>🎵 Audio</h3><div class="fd" id="a-drop">Drop or click to load MP3<input type="file" id="a-in" accept="audio/*" style="display:none"></div></div><div class="sec"><h3>🎛️ Engine</h3><div class="ct"><label>Sensitivity <span id="vs">${Audio.cfg.sens}</span></label><input type="range" id="cs" min="0.5" max="3" step="0.1" value="${Audio.cfg.sens}"></div><div class="ct"><label>Gain <span id="vg">${Audio.cfg.gain}</span></label><input type="range" id="cg" min="0" max="3" step="0.1" value="${Audio.cfg.gain}"></div><div class="ct"><label>Smoothing <span id="vm">${Audio.cfg.smooth}</span></label><input type="range" id="cm" min="0" max="0.99" step="0.01" value="${Audio.cfg.smooth}"></div><div class="ct"><label>Beat <span id="vb">${Audio.cfg.beat}</span></label><input type="range" id="cb" min="0.2" max="1" step="0.05" value="${Audio.cfg.beat}"></div></div><div class="sec"><h3>📊 Levels</h3><div class="meter"><label>Bass</label><div class="meter-bar"><div class="mf b" id="mb"></div></div></div><div class="meter"><label>Mid</label><div class="meter-bar"><div class="mf m" id="mm"></div></div></div><div class="meter"><label>Treble</label><div class="meter-bar"><div class="mf t" id="mt"></div></div></div><div class="meter"><label>All</label><div class="meter-bar"><div class="mf o" id="mo"></div></div></div></div>`;},
@@ -156,6 +211,7 @@ export(){return`<div class="sec"><h3>🎬 Export</h3><div class="ct"><label>File
 
 
 // === APP ===
+// RendererEngine
 const App={cv:null,cx:null,fc:0,lt:0,fps:0,panel:'dashboard',drag:false,dsx:0,dsy:0,dvx:0,dvy:0,
 init(){this.cv=document.getElementById('canvas');this.cx=this.cv.getContext('2d');this.resize();window.addEventListener('resize',()=>this.resize());PT.init();PM.restore();this.nav();this.transport();this.drops();this.mouse();this.keys();this.show('dashboard');this.loop();},
 resize(){const c=document.getElementById('canvas-wrap');this.cv.width=c.clientWidth;this.cv.height=c.clientHeight;},
@@ -262,5 +318,6 @@ document.getElementById('time').textContent=`${fmt(cur)}/${fmt(dur)}`;
 if(dur>0)document.getElementById('seek').value=Math.floor((cur/dur)*1000);
 document.getElementById('bpm-display').textContent=`BPM ${d.bpm||'--'}`;
 document.getElementById('fps-display').textContent=`${this.fps} FPS`;
+EngineRegistry.emit('postRender',c,w,h,d);
 }};
 document.addEventListener('DOMContentLoaded',()=>App.init());
