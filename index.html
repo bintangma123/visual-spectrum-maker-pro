@@ -1,65 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Spectrum Maker PRO V1</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Visual Spectrum Maker PRO V1.5</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
 </head>
 <body>
 <div id="app">
-    <!-- HEADER -->
-    <header id="header">
-        <div class="logo">
-            <span class="logo-icon">🎵</span>
-            <h1>Visual Spectrum Maker <span class="pro">PRO</span></h1>
-        </div>
-        <nav id="main-nav">
-            <button class="nav-btn active" data-panel="dashboard">Dashboard</button>
-            <button class="nav-btn" data-panel="spectrum">Spectrum</button>
-            <button class="nav-btn" data-panel="transform">Transform</button>
-            <button class="nav-btn" data-panel="background">Background</button>
-            <button class="nav-btn" data-panel="bgvideo">BG Video</button>
-            <button class="nav-btn" data-panel="particles">Particles</button>
-            <button class="nav-btn" data-panel="effects">Effects</button>
-            <button class="nav-btn" data-panel="text">Text</button>
-            <button class="nav-btn" data-panel="templates">Templates</button>
-            <button class="nav-btn" data-panel="layers">Layers</button>
-            <button class="nav-btn" data-panel="export">Export</button>
-        </nav>
-    </header>
-
-    <!-- MAIN -->
-    <main id="main-content">
-        <aside id="sidebar"></aside>
-        <section id="canvas-container">
-            <canvas id="preview-canvas"></canvas>
-            <div id="drop-overlay">
-                <div class="drop-content">
-                    <span class="drop-icon">📁</span>
-                    <span>Drop MP3 or Image Here</span>
-                </div>
-            </div>
-            <div id="recording-badge" class="hidden">⏺ REC</div>
-        </section>
-        <aside id="properties-panel"></aside>
-    </main>
-
-    <!-- FOOTER -->
-    <footer id="footer">
-        <div id="transport">
-            <button id="btn-play" title="Play (Space)">▶</button>
-            <button id="btn-pause" title="Pause">⏸</button>
-            <button id="btn-stop" title="Stop (S)">⏹</button>
-            <button id="btn-mute" title="Mute (M)">🔊</button>
-            <span id="time-display">00:00 / 00:00</span>
-            <input type="range" id="seek-bar" min="0" max="1000" value="0" step="1">
-            <span id="bpm-display">BPM: --</span>
-            <span id="fps-display">FPS: 0</span>
-            <button id="btn-fullscreen" title="Fullscreen (F)">⛶</button>
-        </div>
-    </footer>
+<header id="header">
+<div class="logo"><span>🎵</span><h1>Visual Spectrum Maker <b>PRO</b></h1><small>V1.5</small></div>
+<nav id="nav"></nav>
+<div class="header-right">
+<span id="fps-display">60 FPS</span>
+<span id="bpm-display">BPM --</span>
+<button id="btn-fullscreen" title="Fullscreen (F)">⛶</button>
+</div>
+</header>
+<main id="main">
+<aside id="sidebar"></aside>
+<section id="canvas-wrap">
+<canvas id="canvas"></canvas>
+<div id="drop-overlay"><span>Drop MP3, Image, or Video</span></div>
+<div id="rec-badge" class="hidden">⏺ REC</div>
+</section>
+<aside id="props"></aside>
+</main>
+<footer id="footer">
+<button id="btn-play">▶</button>
+<button id="btn-pause">⏸</button>
+<button id="btn-stop">⏹</button>
+<button id="btn-mute">🔊</button>
+<input type="range" id="volume" min="0" max="150" value="100">
+<span id="time">00:00/00:00</span>
+<input type="range" id="seek" min="0" max="1000" value="0">
+</footer>
 </div>
 <script src="app.js"></script>
 </body>
