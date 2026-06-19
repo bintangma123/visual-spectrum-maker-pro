@@ -137,6 +137,7 @@ const State = {
     bgImage:null, bgVideo:null, bgVideoVisible:true, bgVideoOpacity:1, bgVideoBrightness:1, bgVideoBlur:0, bgVideoSpeed:1, bgVideoLoop:true, bgVideoMuted:true, bgReactive:true,
     particleType:'fireflies', particleCount:80, particleSpeed:1, particleSize:3, particleReactive:true,
     vizColors:['#6c5ce7','#a29bfe','#00f5ff'], vizBarCount:64, vizGlow:0.5, vizReactivity:1, vizMirror:false,
+    vizBarWidth:4, vizBarGap:2, vizRadius:0.22, vizRotSpeed:0.5, vizPeakHold:true, vizPeakDecay:0.97, vizRainbow:false, vizAutoColor:false, vizSmoothing:0.7,
     fxVignette:true, fxVignetteAmt:0.4, fxOverlay:'none', fxOverlayAmt:0.3,
     camBassZoom:true, camBassAmt:0.04, camBeatPunch:true, camPunchAmt:0.03, camShake:false, camShakeAmt:2,
     textTitle:'Song Title', textArtist:'Artist Name', textAnim:'none', textColor:'#ffffff', textGlow:0,
@@ -144,106 +145,415 @@ const State = {
     punchDecay:0, vizParticles:[], time:0, exportName:'visual-spectrum'
 };
 
+
+
 // ============================================================
-// VISUALIZERS
+// SPECTRUM ENGINE PRO - Smoothed data buffer + Peak hold
+// ============================================================
+const SpectrumEngine = {
+    smoothed: new Float32Array(1024),
+    peaks: new Float32Array(1024),
+    getSmoothed(freq) {
+        const s = State.vizSmoothing;
+        for (let i = 0; i < freq.length; i++) {
+            const v = (freq[i] / 255) * State.vizReactivity;
+            this.smoothed[i] = this.smoothed[i] * s + v * (1 - s);
+            if (this.smoothed[i] > this.peaks[i]) this.peaks[i] = this.smoothed[i];
+            else this.peaks[i] *= State.vizPeakDecay;
+        }
+        return this.smoothed;
+    },
+    getColor(i, count) {
+        if (State.vizRainbow) return `hsl(${(i/count)*360 + State.time*50}, 80%, 60%)`;
+        if (State.vizAutoColor) return `hsl(${(i/count)*120 + 240}, 80%, 60%)`;
+        return State.vizColors[0];
+    },
+    getGrad(ctx, x0, y0, x1, y1, i, count) {
+        const g = ctx.createLinearGradient(x0, y0, x1, y1);
+        if (State.vizRainbow) {
+            const h = (i/count)*360 + State.time*50;
+            g.addColorStop(0, `hsl(${h},80%,55%)`); g.addColorStop(1, `hsl(${h+40},80%,70%)`);
+        } else {
+            g.addColorStop(0, State.vizColors[0]); g.addColorStop(0.5, State.vizColors[1]); g.addColorStop(1, State.vizColors[2]);
+        }
+        return g;
+    }
+};
+
+// ============================================================
+// VISUALIZERS - 25 Presets
 // ============================================================
 const Visualizers = {
+    // === CLASSIC ===
     bars(ctx,w,h,data) {
-        const {freq}=data, count=State.vizBarCount, gap=2, totalW=w*0.85;
-        const barW=(totalW/count)-gap, startX=(w-totalW)/2, baseY=h*0.75;
-        ctx.shadowBlur=State.vizGlow*15; ctx.shadowColor=State.vizColors[0];
-        for(let i=0;i<count;i++){
-            const idx=Math.floor(i*freq.length/count), val=(freq[idx]/255)*State.vizReactivity;
-            const barH=val*h*0.6, x=startX+i*(barW+gap);
-            const grad=ctx.createLinearGradient(x,baseY,x,baseY-barH);
-            grad.addColorStop(0,State.vizColors[0]); grad.addColorStop(0.5,State.vizColors[1]); grad.addColorStop(1,State.vizColors[2]);
-            ctx.fillStyle=grad; ctx.beginPath(); ctx.roundRect(x,baseY-barH,barW,barH,[3,3,0,0]); ctx.fill();
-            if(State.vizMirror){ctx.globalAlpha=0.3;ctx.fillRect(x,baseY+2,barW,barH*0.25);ctx.globalAlpha=1;}
-        }
-        ctx.shadowBlur=0;
-    },
-    circular(ctx,w,h,data) {
-        const {freq,bass}=data, cx=w/2, cy=h/2, radius=Math.min(w,h)*0.22, count=State.vizBarCount;
-        const rot = State.time*0.5 + bass*0.5;
+        const sm = SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, gap=State.vizBarGap, bw=State.vizBarWidth;
+        const totalW=count*(bw+gap), startX=(w-totalW)/2, baseY=h*0.78;
         ctx.shadowBlur=State.vizGlow*12; ctx.shadowColor=State.vizColors[0];
         for(let i=0;i<count;i++){
-            const idx=Math.floor(i*freq.length/count), val=(freq[idx]/255)*State.vizReactivity;
-            const angle=(i/count)*Math.PI*2+rot, len=val*radius*1.4;
-            const x1=cx+Math.cos(angle)*radius, y1=cy+Math.sin(angle)*radius;
-            const x2=cx+Math.cos(angle)*(radius+len), y2=cy+Math.sin(angle)*(radius+len);
-            const grad=ctx.createLinearGradient(x1,y1,x2,y2);
-            grad.addColorStop(0,State.vizColors[0]); grad.addColorStop(1,State.vizColors[2]);
-            ctx.strokeStyle=grad; ctx.lineWidth=3; ctx.lineCap='round';
-            ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+            const idx=Math.floor(i*sm.length/count), val=sm[idx];
+            const barH=val*h*0.6, x=startX+i*(bw+gap);
+            ctx.fillStyle=SpectrumEngine.getGrad(ctx,x,baseY,x,baseY-barH,i,count);
+            ctx.beginPath();ctx.roundRect(x,baseY-barH,bw,barH,[2,2,0,0]);ctx.fill();
+            if(State.vizPeakHold){const pk=SpectrumEngine.peaks[idx]*h*0.6;ctx.fillStyle=State.vizColors[2];ctx.fillRect(x,baseY-pk-2,bw,2);}
+            if(State.vizMirror){ctx.globalAlpha=0.25;ctx.fillStyle=SpectrumEngine.getColor(i,count);ctx.fillRect(x,baseY+2,bw,barH*0.2);ctx.globalAlpha=1;}
         }
-        ctx.strokeStyle=State.vizColors[1]; ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.arc(cx,cy,radius*(0.95+bass*0.05),0,Math.PI*2); ctx.stroke();
         ctx.shadowBlur=0;
     },
-    waveform(ctx,w,h,data) {
-        const {time:td,bass}=data, cy=h/2, amp=h*0.3*State.vizReactivity;
+    hbars(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, gap=State.vizBarGap, bh=State.vizBarWidth;
+        const totalH=count*(bh+gap), startY=(h-totalH)/2, baseX=w*0.1;
         ctx.shadowBlur=State.vizGlow*10; ctx.shadowColor=State.vizColors[0];
-        const grad=ctx.createLinearGradient(0,cy-amp,0,cy+amp);
-        grad.addColorStop(0,State.vizColors[2]); grad.addColorStop(0.5,State.vizColors[0]); grad.addColorStop(1,State.vizColors[1]);
-        ctx.strokeStyle=grad; ctx.lineWidth=2+bass*2; ctx.lineCap='round'; ctx.beginPath();
-        const slice=w/td.length;
-        for(let i=0;i<td.length;i++){const v=td[i]/128,y=cy+(v-1)*amp; i===0?ctx.moveTo(0,y):ctx.lineTo(i*slice,y);}
-        ctx.stroke(); ctx.shadowBlur=0;
+        for(let i=0;i<count;i++){
+            const idx=Math.floor(i*sm.length/count), val=sm[idx];
+            const barW=val*w*0.7, y=startY+i*(bh+gap);
+            ctx.fillStyle=SpectrumEngine.getGrad(ctx,baseX,y,baseX+barW,y,i,count);
+            ctx.fillRect(baseX,y,barW,bh);
+            if(State.vizPeakHold){const pk=SpectrumEngine.peaks[idx]*w*0.7;ctx.fillStyle=State.vizColors[2];ctx.fillRect(baseX+pk,y,2,bh);}
+        }
+        ctx.shadowBlur=0;
     },
     mirror(ctx,w,h,data) {
-        const {freq}=data, count=State.vizBarCount, gap=2, totalW=w*0.85;
-        const barW=(totalW/count)-gap, startX=(w-totalW)/2, cy=h/2;
-        ctx.shadowBlur=State.vizGlow*12; ctx.shadowColor=State.vizColors[0];
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, gap=State.vizBarGap, bw=State.vizBarWidth;
+        const totalW=count*(bw+gap), startX=(w-totalW)/2, cy=h/2;
+        ctx.shadowBlur=State.vizGlow*10; ctx.shadowColor=State.vizColors[0];
         for(let i=0;i<count;i++){
-            const idx=Math.floor(i*freq.length/count), val=(freq[idx]/255)*State.vizReactivity, barH=val*h*0.35;
-            const x=startX+i*(barW+gap);
-            const grad=ctx.createLinearGradient(x,cy-barH,x,cy+barH);
-            grad.addColorStop(0,State.vizColors[2]); grad.addColorStop(0.5,State.vizColors[0]); grad.addColorStop(1,State.vizColors[2]);
-            ctx.fillStyle=grad; ctx.fillRect(x,cy-barH,barW,barH); ctx.fillRect(x,cy,barW,barH);
+            const idx=Math.floor(i*sm.length/count), val=sm[idx], barH=val*h*0.38;
+            const x=startX+i*(bw+gap);
+            ctx.fillStyle=SpectrumEngine.getGrad(ctx,x,cy-barH,x,cy+barH,i,count);
+            ctx.fillRect(x,cy-barH,bw,barH); ctx.fillRect(x,cy,bw,barH);
         }
         ctx.shadowBlur=0;
     },
-    neon(ctx,w,h,data) {
-        const {freq}=data, count=State.vizBarCount, totalW=w*0.8, barW=(totalW/count)-2;
-        const startX=(w-totalW)/2, baseY=h*0.65;
-        for(let pass=0;pass<3;pass++){
-            ctx.shadowBlur=[20,10,0][pass]; ctx.shadowColor=State.vizColors[0]; ctx.globalAlpha=[0.3,0.6,1][pass];
+    double(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, gap=State.vizBarGap, bw=State.vizBarWidth;
+        const totalW=count*(bw+gap), startX=(w-totalW)/2;
+        ctx.shadowBlur=State.vizGlow*8; ctx.shadowColor=State.vizColors[0];
+        for(let i=0;i<count;i++){
+            const idx=Math.floor(i*sm.length/count), val=sm[idx];
+            const x=startX+i*(bw+gap), barH=val*h*0.35;
+            ctx.fillStyle=SpectrumEngine.getGrad(ctx,x,h*0.35,x,h*0.35-barH,i,count);
+            ctx.fillRect(x,h*0.35-barH,bw,barH);
+            ctx.fillStyle=SpectrumEngine.getGrad(ctx,x,h*0.65,x,h*0.65+barH,i,count);
+            ctx.fillRect(x,h*0.65,bw,barH);
+        }
+        ctx.shadowBlur=0;
+    },
+    triple(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=Math.floor(State.vizBarCount*0.7), gap=State.vizBarGap, bw=State.vizBarWidth;
+        const totalW=count*(bw+gap), startX=(w-totalW)/2;
+        const rows=[h*0.25, h*0.5, h*0.75];
+        ctx.shadowBlur=State.vizGlow*6; ctx.shadowColor=State.vizColors[0];
+        rows.forEach((baseY,ri)=>{
             for(let i=0;i<count;i++){
-                const idx=Math.floor(i*freq.length/count), val=(freq[idx]/255)*State.vizReactivity;
-                const barH=val*h*0.45, x=startX+i*(barW+2), hue=(i/count)*100+240;
-                ctx.fillStyle=`hsl(${hue},85%,${50+val*25}%)`; ctx.fillRect(x,baseY-barH,barW,barH);
+                const idx=Math.floor(i*sm.length/count), val=sm[idx]*(1-ri*0.15);
+                const x=startX+i*(bw+gap), barH=val*h*0.2;
+                ctx.fillStyle=SpectrumEngine.getGrad(ctx,x,baseY,x,baseY-barH,i,count);
+                ctx.fillRect(x,baseY-barH,bw,barH);
+            }
+        });
+        ctx.shadowBlur=0;
+    },
+
+    // === CIRCLE ===
+    circular(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cx=w/2,cy=h/2,radius=Math.min(w,h)*State.vizRadius,count=State.vizBarCount;
+        const rot=State.time*State.vizRotSpeed;
+        ctx.shadowBlur=State.vizGlow*10; ctx.shadowColor=State.vizColors[0];
+        for(let i=0;i<count;i++){
+            const idx=Math.floor(i*sm.length/count), val=sm[idx];
+            const angle=(i/count)*Math.PI*2+rot, len=val*radius*1.3;
+            const x1=cx+Math.cos(angle)*radius,y1=cy+Math.sin(angle)*radius;
+            const x2=cx+Math.cos(angle)*(radius+len),y2=cy+Math.sin(angle)*(radius+len);
+            ctx.strokeStyle=SpectrumEngine.getColor(i,count); ctx.lineWidth=State.vizBarWidth; ctx.lineCap='round';
+            ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+        }
+        ctx.strokeStyle=State.vizColors[1];ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,radius,0,Math.PI*2);ctx.stroke();
+        ctx.shadowBlur=0;
+    },
+    ring(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cx=w/2,cy=h/2,radius=Math.min(w,h)*State.vizRadius,count=State.vizBarCount;
+        const rot=State.time*State.vizRotSpeed;
+        ctx.shadowBlur=State.vizGlow*8; ctx.shadowColor=State.vizColors[0];
+        ctx.lineWidth=2; ctx.lineCap='round';
+        ctx.beginPath();
+        for(let i=0;i<=count;i++){
+            const idx=Math.floor((i%count)*sm.length/count), val=sm[idx];
+            const angle=(i/count)*Math.PI*2+rot;
+            const r=radius+val*radius*0.8;
+            const px=cx+Math.cos(angle)*r, py=cy+Math.sin(angle)*r;
+            i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+        }
+        ctx.closePath();
+        ctx.strokeStyle=State.vizColors[0]; ctx.stroke();
+        ctx.globalAlpha=0.1; ctx.fillStyle=State.vizColors[0]; ctx.fill(); ctx.globalAlpha=1;
+        ctx.shadowBlur=0;
+    },
+    doublering(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cx=w/2,cy=h/2,count=State.vizBarCount,rot=State.time*State.vizRotSpeed;
+        [0.18,0.3].forEach((rFactor,ri)=>{
+            const radius=Math.min(w,h)*rFactor;
+            ctx.shadowBlur=State.vizGlow*8; ctx.shadowColor=State.vizColors[ri];
+            ctx.lineWidth=2; ctx.beginPath();
+            for(let i=0;i<=count;i++){
+                const idx=Math.floor((i%count)*sm.length/count), val=sm[idx]*(1-ri*0.2);
+                const angle=(i/count)*Math.PI*2+rot*(ri===0?1:-0.5);
+                const r=radius+val*radius*0.7;
+                const px=cx+Math.cos(angle)*r, py=cy+Math.sin(angle)*r;
+                i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+            }
+            ctx.closePath(); ctx.strokeStyle=State.vizColors[ri]; ctx.stroke();
+        });
+        ctx.shadowBlur=0;
+    },
+    halo(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cx=w/2,cy=h/2,radius=Math.min(w,h)*State.vizRadius,count=State.vizBarCount;
+        ctx.shadowBlur=State.vizGlow*15; ctx.shadowColor=State.vizColors[0];
+        for(let i=0;i<count;i++){
+            const idx=Math.floor(i*sm.length/count), val=sm[idx];
+            const angle=(i/count)*Math.PI*2+State.time*State.vizRotSpeed;
+            const r1=radius-val*radius*0.3, r2=radius+val*radius*0.6;
+            const x1=cx+Math.cos(angle)*r1,y1=cy+Math.sin(angle)*r1;
+            const x2=cx+Math.cos(angle)*r2,y2=cy+Math.sin(angle)*r2;
+            ctx.strokeStyle=SpectrumEngine.getColor(i,count); ctx.lineWidth=State.vizBarWidth*0.8; ctx.lineCap='round';
+            ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+        }
+        const glow=ctx.createRadialGradient(cx,cy,radius*0.8,cx,cy,radius*1.2);
+        glow.addColorStop(0,`rgba(108,92,231,${data.bass*0.15})`);glow.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
+        ctx.shadowBlur=0;
+    },
+    radial(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cx=w/2,cy=h/2,maxR=Math.min(w,h)*0.4,count=State.vizBarCount;
+        ctx.shadowBlur=State.vizGlow*6; ctx.shadowColor=State.vizColors[0];
+        for(let i=0;i<count;i++){
+            const idx=Math.floor(i*sm.length/count), val=sm[idx];
+            const angle=(i/count)*Math.PI*2+State.time*State.vizRotSpeed;
+            const len=val*maxR;
+            ctx.strokeStyle=SpectrumEngine.getColor(i,count); ctx.lineWidth=2; ctx.lineCap='round';
+            ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(angle)*len,cy+Math.sin(angle)*len);ctx.stroke();
+        }
+        ctx.shadowBlur=0;
+    },
+
+    // === WAVE ===
+    waveform(ctx,w,h,data) {
+        const cy=h/2, amp=h*0.3*State.vizReactivity;
+        ctx.shadowBlur=State.vizGlow*8; ctx.shadowColor=State.vizColors[0];
+        ctx.strokeStyle=SpectrumEngine.getGrad(ctx,0,cy-amp,0,cy+amp,0,1);
+        ctx.lineWidth=2+data.bass*2; ctx.lineCap='round'; ctx.beginPath();
+        const td=data.time, slice=w/td.length;
+        for(let i=0;i<td.length;i++){const v=td[i]/128,y=cy+(v-1)*amp;i===0?ctx.moveTo(0,y):ctx.lineTo(i*slice,y);}
+        ctx.stroke(); ctx.shadowBlur=0;
+    },
+    oscilloscope(ctx,w,h,data) {
+        const cy=h/2, amp=h*0.35*State.vizReactivity;
+        ctx.strokeStyle=State.vizColors[2]; ctx.lineWidth=1.5; ctx.shadowBlur=State.vizGlow*6; ctx.shadowColor=State.vizColors[2];
+        ctx.beginPath();
+        const td=data.time, slice=w/td.length;
+        for(let i=0;i<td.length;i++){const v=td[i]/128,y=cy+(v-1)*amp;i===0?ctx.moveTo(0,y):ctx.lineTo(i*slice,y);}
+        ctx.stroke();
+        // Grid
+        ctx.globalAlpha=0.1; ctx.strokeStyle='#fff'; ctx.lineWidth=0.5;
+        for(let y=h*0.2;y<h*0.8;y+=h*0.1){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+        ctx.globalAlpha=1; ctx.shadowBlur=0;
+    },
+    ribbon(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cy=h/2, amp=h*0.3;
+        ctx.shadowBlur=State.vizGlow*8; ctx.shadowColor=State.vizColors[0];
+        // Top ribbon
+        ctx.beginPath();
+        for(let i=0;i<sm.length;i+=4){const x=(i/sm.length)*w,val=sm[i],y=cy-val*amp;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+        for(let i=sm.length-1;i>=0;i-=4){const x=(i/sm.length)*w,val=sm[i]*0.3,y=cy-val*amp;ctx.lineTo(x,y);}
+        ctx.closePath(); ctx.fillStyle=State.vizColors[0]; ctx.globalAlpha=0.6; ctx.fill(); ctx.globalAlpha=1;
+        // Bottom mirror
+        ctx.beginPath();
+        for(let i=0;i<sm.length;i+=4){const x=(i/sm.length)*w,val=sm[i],y=cy+val*amp;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+        for(let i=sm.length-1;i>=0;i-=4){const x=(i/sm.length)*w;ctx.lineTo(x,cy);}
+        ctx.closePath(); ctx.fillStyle=State.vizColors[1]; ctx.globalAlpha=0.4; ctx.fill(); ctx.globalAlpha=1;
+        ctx.shadowBlur=0;
+    },
+    smooth(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cy=h/2, amp=h*0.35;
+        ctx.shadowBlur=State.vizGlow*10; ctx.shadowColor=State.vizColors[0];
+        ctx.strokeStyle=SpectrumEngine.getGrad(ctx,0,cy-amp,0,cy+amp,0,1);
+        ctx.lineWidth=3; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.beginPath();
+        const step=Math.max(4,Math.floor(sm.length/128));
+        for(let i=0;i<sm.length;i+=step){
+            const x=(i/sm.length)*w, val=sm[i], y=cy-val*amp+amp*0.5;
+            if(i===0)ctx.moveTo(x,y);
+            else{const px=((i-step)/sm.length)*w;ctx.quadraticCurveTo((px+x)/2,cy-(sm[i-step]||0)*amp+amp*0.5,x,y);}
+        }
+        ctx.stroke(); ctx.shadowBlur=0;
+    },
+
+    // === MODERN ===
+    neon(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, bw=State.vizBarWidth, gap=State.vizBarGap;
+        const totalW=count*(bw+gap), startX=(w-totalW)/2, baseY=h*0.65;
+        for(let pass=0;pass<3;pass++){
+            ctx.shadowBlur=[18,8,0][pass]; ctx.shadowColor=State.vizColors[0]; ctx.globalAlpha=[0.3,0.6,1][pass];
+            for(let i=0;i<count;i++){
+                const idx=Math.floor(i*sm.length/count), val=sm[idx], barH=val*h*0.5;
+                const x=startX+i*(bw+gap), hue=State.vizRainbow?(i/count)*360+State.time*50:(i/count)*100+240;
+                ctx.fillStyle=`hsl(${hue},85%,${50+val*25}%)`;ctx.fillRect(x,baseY-barH,bw,barH);
+            }
+        }
+        ctx.globalAlpha=1;ctx.shadowBlur=0;
+        ctx.globalAlpha=0.12;for(let i=0;i<count;i++){const idx=Math.floor(i*sm.length/count);const val=sm[idx];ctx.fillStyle=State.vizColors[0];ctx.fillRect(startX+i*(bw+gap),baseY+2,bw,val*h*0.1);}ctx.globalAlpha=1;
+    },
+    glass(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, bw=State.vizBarWidth+2, gap=State.vizBarGap;
+        const totalW=count*(bw+gap), startX=(w-totalW)/2, baseY=h*0.7;
+        ctx.shadowBlur=State.vizGlow*6; ctx.shadowColor=State.vizColors[1];
+        for(let i=0;i<count;i++){
+            const idx=Math.floor(i*sm.length/count), val=sm[idx], barH=val*h*0.55;
+            const x=startX+i*(bw+gap);
+            ctx.fillStyle=`rgba(255,255,255,${0.05+val*0.15})`; ctx.fillRect(x,baseY-barH,bw,barH);
+            ctx.strokeStyle=SpectrumEngine.getColor(i,count); ctx.lineWidth=1;
+            ctx.strokeRect(x,baseY-barH,bw,barH);
+        }
+        ctx.shadowBlur=0;
+    },
+    rgb(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, bw=State.vizBarWidth, gap=State.vizBarGap;
+        const totalW=count*(bw+gap), startX=(w-totalW)/2, baseY=h*0.75;
+        const colors=['#ff0040','#00ff80','#0080ff'];
+        ctx.shadowBlur=State.vizGlow*10;
+        for(let c=0;c<3;c++){
+            ctx.shadowColor=colors[c]; ctx.fillStyle=colors[c]; ctx.globalAlpha=0.7;
+            for(let i=0;i<count;i++){
+                const idx=Math.floor(i*sm.length/count), val=sm[idx]*(1-c*0.1);
+                const barH=val*h*0.5, x=startX+i*(bw+gap)+c*1.5;
+                ctx.fillRect(x,baseY-barH,bw*0.8,barH);
             }
         }
         ctx.globalAlpha=1; ctx.shadowBlur=0;
-        // Reflection
-        ctx.globalAlpha=0.15;
-        for(let i=0;i<count;i++){const idx=Math.floor(i*freq.length/count);const val=(freq[idx]/255)*State.vizReactivity;const x=startX+i*(barW+2);ctx.fillStyle=State.vizColors[0];ctx.fillRect(x,baseY+2,barW,val*h*0.12);}
-        ctx.globalAlpha=1;
     },
-    particles(ctx,w,h,data) {
-        const {freq,bass,isBeat}=data, cx=w/2,cy=h/2;
-        if(isBeat){for(let i=0;i<15;i++){const a=Math.random()*Math.PI*2,s=2+Math.random()*5*bass;State.vizParticles.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,size:1+Math.random()*3,color:State.vizColors[Math.floor(Math.random()*3)]});}}
-        for(let i=0;i<32;i++){const idx=Math.floor(i*freq.length/32),val=freq[idx]/255;if(val>0.6&&Math.random()>0.8){const a=(i/32)*Math.PI*2,r=Math.min(w,h)*0.15;State.vizParticles.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r,vx:Math.cos(a)*val*3,vy:Math.sin(a)*val*3,life:1,size:val*3,color:State.vizColors[Math.floor(Math.random()*3)]});}}
-        for(let i=State.vizParticles.length-1;i>=0;i--){const p=State.vizParticles[i];p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy*=0.97;p.life-=0.015;if(p.life<=0){State.vizParticles.splice(i,1);continue;}ctx.globalAlpha=p.life;ctx.shadowBlur=8;ctx.shadowColor=p.color;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();}
-        if(State.vizParticles.length>400) State.vizParticles=State.vizParticles.slice(-400);
-        ctx.globalAlpha=1;ctx.shadowBlur=0;
-        const g=ctx.createRadialGradient(cx,cy,0,cx,cy,80+bass*40);g.addColorStop(0,`rgba(108,92,231,${bass*0.3})`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+    cyber(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, bw=State.vizBarWidth, gap=State.vizBarGap+1;
+        const totalW=count*(bw+gap), startX=(w-totalW)/2, baseY=h*0.7;
+        ctx.shadowBlur=State.vizGlow*12; ctx.shadowColor='#00f5ff';
+        for(let i=0;i<count;i++){
+            const idx=Math.floor(i*sm.length/count), val=sm[idx], barH=val*h*0.55;
+            const x=startX+i*(bw+gap);
+            const segs=Math.floor(barH/6);
+            for(let s=0;s<segs;s++){
+                const sy=baseY-s*6-4, alpha=1-s/segs*0.3;
+                ctx.fillStyle=`rgba(0,245,255,${alpha*0.8})`; ctx.fillRect(x,sy,bw,4);
+            }
+        }
+        ctx.shadowBlur=0;
     },
-    energy(ctx,w,h,data) {
-        const {freq,bass,overall}=data, cx=w/2,cy=h/2, maxR=Math.min(w,h)*0.35;
-        for(let r=0;r<5;r++){
-            const start=Math.floor(r*freq.length/5),end=Math.floor((r+1)*freq.length/5);let avg=0;
-            for(let i=start;i<end;i++) avg+=freq[i]; avg=avg/(end-start)/255;
-            const radius=(r+1)*(maxR/5)*(0.8+avg*0.4),hue=260+r*30;
-            ctx.strokeStyle=`hsla(${hue},80%,60%,${avg*0.8})`; ctx.lineWidth=1+avg*3;
-            ctx.shadowBlur=avg*12; ctx.shadowColor=`hsl(${hue},80%,60%)`;
-            ctx.beginPath();
-            for(let a=0;a<=Math.PI*2;a+=0.05){const fi=Math.floor((a/(Math.PI*2))*(end-start))+start;const fv=(freq[fi]||0)/255*State.vizReactivity;const wave=Math.sin(a*8+State.time*2)*fv*8;const px=cx+Math.cos(a)*(radius+wave);const py=cy+Math.sin(a)*(radius+wave);a===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
+    hologram(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cx=w/2,cy=h/2,radius=Math.min(w,h)*State.vizRadius*1.2,count=State.vizBarCount;
+        ctx.shadowBlur=State.vizGlow*15; ctx.shadowColor='#00f5ff'; ctx.globalAlpha=0.7;
+        for(let ring=0;ring<3;ring++){
+            const r=radius*(0.6+ring*0.25), rot=State.time*State.vizRotSpeed*(ring%2===0?1:-1);
+            ctx.strokeStyle=`hsla(${180+ring*40},80%,60%,0.6)`; ctx.lineWidth=1.5; ctx.beginPath();
+            for(let i=0;i<=count;i++){
+                const idx=Math.floor((i%count)*sm.length/count), val=sm[idx]*(1-ring*0.2);
+                const angle=(i/count)*Math.PI*2+rot;
+                const pr=r+val*r*0.4;
+                const px=cx+Math.cos(angle)*pr, py=cy+Math.sin(angle)*pr;
+                i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+            }
             ctx.closePath(); ctx.stroke();
         }
-        const coreG=ctx.createRadialGradient(cx,cy,0,cx,cy,15+overall*15);
-        coreG.addColorStop(0,`rgba(255,255,255,${0.7+bass*0.3})`);coreG.addColorStop(0.4,'rgba(108,92,231,0.5)');coreG.addColorStop(1,'rgba(0,0,0,0)');
-        ctx.fillStyle=coreG;ctx.beginPath();ctx.arc(cx,cy,15+overall*15,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+        ctx.globalAlpha=1; ctx.shadowBlur=0;
+    },
+
+    // === PREMIUM ===
+    energy(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cx=w/2,cy=h/2,maxR=Math.min(w,h)*0.35;
+        ctx.shadowBlur=State.vizGlow*10;
+        for(let r=0;r<5;r++){
+            const start=Math.floor(r*sm.length/5),end=Math.floor((r+1)*sm.length/5);
+            let avg=0;for(let i=start;i<end;i++)avg+=sm[i];avg/=(end-start);
+            const radius=(r+1)*(maxR/5)*(0.8+avg*0.4),hue=260+r*30;
+            ctx.strokeStyle=`hsla(${hue},80%,60%,${avg*0.8})`;ctx.lineWidth=1+avg*3;
+            ctx.shadowColor=`hsl(${hue},80%,60%)`;ctx.beginPath();
+            for(let a=0;a<=Math.PI*2;a+=0.05){const fi=Math.floor((a/(Math.PI*2))*(end-start))+start;const fv=sm[fi]||0;const wave=Math.sin(a*8+State.time*2)*fv*8;const px=cx+Math.cos(a)*(radius+wave);const py=cy+Math.sin(a)*(radius+wave);a===0?ctx.moveTo(px,py):ctx.lineTo(px,py);}
+            ctx.closePath();ctx.stroke();
+        }
+        const cG=ctx.createRadialGradient(cx,cy,0,cx,cy,15+data.overall*15);
+        cG.addColorStop(0,`rgba(255,255,255,${0.7+data.bass*0.3})`);cG.addColorStop(0.4,'rgba(108,92,231,0.5)');cG.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=cG;ctx.beginPath();ctx.arc(cx,cy,15+data.overall*15,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    },
+    plasma(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, baseY=h*0.7;
+        ctx.shadowBlur=State.vizGlow*12;
+        for(let i=0;i<count;i++){
+            const idx=Math.floor(i*sm.length/count), val=sm[idx];
+            const x=(i/count)*w, barH=val*h*0.5;
+            const hue=(i/count)*180+State.time*80+val*60;
+            ctx.shadowColor=`hsl(${hue},90%,50%)`;
+            ctx.fillStyle=`hsl(${hue},90%,${40+val*30}%)`;
+            ctx.fillRect(x,baseY-barH,w/count-1,barH);
+        }
+        ctx.shadowBlur=0;
+    },
+    galaxy(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const cx=w/2,cy=h/2,maxR=Math.min(w,h)*0.4;
+        ctx.shadowBlur=State.vizGlow*8;
+        for(let i=0;i<200;i++){
+            const idx=Math.floor(i*sm.length/200), val=sm[idx];
+            if(val<0.05)continue;
+            const spiralAngle=i*0.15+State.time*State.vizRotSpeed;
+            const dist=(i/200)*maxR*(0.5+val*0.8);
+            const px=cx+Math.cos(spiralAngle)*dist, py=cy+Math.sin(spiralAngle)*dist;
+            const hue=(i/200)*360+State.time*30;
+            ctx.fillStyle=`hsla(${hue},80%,60%,${val*0.8})`;
+            ctx.shadowColor=`hsl(${hue},80%,60%)`;
+            ctx.beginPath();ctx.arc(px,py,1+val*3,0,Math.PI*2);ctx.fill();
+        }
+        ctx.shadowBlur=0;
+    },
+    fire(ctx,w,h,data) {
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        const count=State.vizBarCount, baseY=h*0.8;
+        ctx.shadowBlur=State.vizGlow*10;
+        for(let i=0;i<count;i++){
+            const idx=Math.floor(i*sm.length/count), val=sm[idx];
+            const x=(i/count)*w, bw=w/count, barH=val*h*0.6;
+            const hue=val*40; // red to yellow
+            ctx.shadowColor=`hsl(${hue},100%,50%)`;
+            ctx.fillStyle=`hsl(${hue},100%,${40+val*30}%)`;
+            ctx.globalAlpha=0.7+val*0.3;
+            ctx.fillRect(x,baseY-barH,bw-1,barH);
+            // Flame tip
+            if(val>0.3){ctx.fillStyle=`rgba(255,200,0,${val*0.5})`;ctx.beginPath();ctx.arc(x+bw/2,baseY-barH-5,bw*0.8,0,Math.PI*2);ctx.fill();}
+        }
+        ctx.globalAlpha=1;ctx.shadowBlur=0;
+    },
+    particles(ctx,w,h,data) {
+        const cx=w/2,cy=h/2;
+        if(data.isBeat){for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2,s=2+Math.random()*5*data.bass;State.vizParticles.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,size:1+Math.random()*3,color:SpectrumEngine.getColor(i,12)});}}
+        const sm=SpectrumEngine.getSmoothed(data.freq);
+        for(let i=0;i<24;i++){const idx=Math.floor(i*sm.length/24),val=sm[idx];if(val>0.5&&Math.random()>0.75){const a=(i/24)*Math.PI*2,r=Math.min(w,h)*0.15;State.vizParticles.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r,vx:Math.cos(a)*val*3,vy:Math.sin(a)*val*3,life:1,size:val*3,color:SpectrumEngine.getColor(i,24)});}}
+        for(let i=State.vizParticles.length-1;i>=0;i--){const p=State.vizParticles[i];p.x+=p.vx;p.y+=p.vy;p.vx*=0.97;p.vy*=0.97;p.life-=0.015;if(p.life<=0){State.vizParticles.splice(i,1);continue;}ctx.globalAlpha=p.life;ctx.shadowBlur=6;ctx.shadowColor=p.color;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();}
+        if(State.vizParticles.length>500)State.vizParticles=State.vizParticles.slice(-500);
+        ctx.globalAlpha=1;ctx.shadowBlur=0;
+        const g=ctx.createRadialGradient(cx,cy,0,cx,cy,80+data.bass*40);g.addColorStop(0,`rgba(108,92,231,${data.bass*0.25})`);g.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
     }
 };
 
@@ -313,7 +623,7 @@ const Exporter = { recorder:null, chunks:[], isRecording:false,
 // ============================================================
 const Panels = {
     dashboard(){return `<div class="section"><h3>🎵 Load Audio</h3><div class="file-drop" id="audio-drop">Click or drag MP3 here<input type="file" id="audio-input" accept="audio/*" style="display:none"></div></div><div class="section"><h3>🎛️ Audio Engine</h3><div class="ctrl"><label>Sensitivity <span id="v-sens">${AudioEngine.config.sensitivity}</span></label><input type="range" id="c-sens" min="0.5" max="3" step="0.1" value="${AudioEngine.config.sensitivity}"></div><div class="ctrl"><label>Gain <span id="v-gain">${AudioEngine.config.gain}</span></label><input type="range" id="c-gain" min="0" max="3" step="0.1" value="${AudioEngine.config.gain}"></div><div class="ctrl"><label>Smoothing <span id="v-smooth">${AudioEngine.config.smoothing}</span></label><input type="range" id="c-smooth" min="0" max="0.99" step="0.01" value="${AudioEngine.config.smoothing}"></div><div class="ctrl"><label>Beat Threshold <span id="v-beat">${AudioEngine.config.beatThreshold}</span></label><input type="range" id="c-beat" min="0.2" max="1" step="0.05" value="${AudioEngine.config.beatThreshold}"></div><div class="ctrl"><label>Volume <span id="v-vol">${AudioEngine.volume}</span></label><input type="range" id="c-vol" min="0" max="1.5" step="0.05" value="${AudioEngine.volume}"></div></div><div class="section"><h3>📊 Levels</h3><div class="meter"><label>Bass</label><div class="meter-bar"><div class="meter-fill bass" id="m-bass"></div></div></div><div class="meter"><label>Mid</label><div class="meter-bar"><div class="meter-fill mid" id="m-mid"></div></div></div><div class="meter"><label>Treble</label><div class="meter-bar"><div class="meter-fill treble" id="m-treble"></div></div></div><div class="meter"><label>Overall</label><div class="meter-bar"><div class="meter-fill overall" id="m-overall"></div></div></div></div>`;},
-    spectrum(){return `<div class="section"><h3>📊 Visualizer</h3><div class="grid"><div class="grid-item ${State.activeViz==='bars'?'active':''}" data-viz="bars"><span class="ico">▮▮▮</span>Bars</div><div class="grid-item ${State.activeViz==='mirror'?'active':''}" data-viz="mirror"><span class="ico">⬍</span>Mirror</div><div class="grid-item ${State.activeViz==='circular'?'active':''}" data-viz="circular"><span class="ico">◎</span>Circular</div><div class="grid-item ${State.activeViz==='waveform'?'active':''}" data-viz="waveform"><span class="ico">〰️</span>Waveform</div><div class="grid-item ${State.activeViz==='neon'?'active':''}" data-viz="neon"><span class="ico">💡</span>Neon</div><div class="grid-item ${State.activeViz==='particles'?'active':''}" data-viz="particles"><span class="ico">💥</span>Particles</div><div class="grid-item ${State.activeViz==='energy'?'active':''}" data-viz="energy"><span class="ico">◉</span>Energy</div></div></div><div class="section"><h3>🎨 Colors</h3><div class="ctrl"><label>Primary</label><input type="color" id="c-col1" value="${State.vizColors[0]}"></div><div class="ctrl"><label>Secondary</label><input type="color" id="c-col2" value="${State.vizColors[1]}"></div><div class="ctrl"><label>Accent</label><input type="color" id="c-col3" value="${State.vizColors[2]}"></div></div><div class="section"><h3>⚙️ Settings</h3><div class="ctrl"><label>Bar Count <span id="v-bars">${State.vizBarCount}</span></label><input type="range" id="c-bars" min="16" max="128" step="8" value="${State.vizBarCount}"></div><div class="ctrl"><label>Glow <span id="v-glow">${State.vizGlow}</span></label><input type="range" id="c-glow" min="0" max="1" step="0.1" value="${State.vizGlow}"></div><div class="ctrl"><label>Reactivity <span id="v-react">${State.vizReactivity}</span></label><input type="range" id="c-react" min="0.5" max="3" step="0.1" value="${State.vizReactivity}"></div><div class="ctrl"><label><input type="checkbox" id="c-mirror" ${State.vizMirror?'checked':''}> Mirror Reflection</label></div></div>`;},
+    spectrum(){const V=State.activeViz;const g=(id,icon,name)=>`<div class="grid-item ${V===id?'active':''} " data-viz="${id}"><span class="ico">${icon}</span>${name}</div>`;return `<div class="section"><h3>Classic</h3><div class="grid">${g('bars','▮▮▮','Bars')}${g('hbars','▬▬','H-Bars')}${g('mirror','⬍','Mirror')}${g('double','⫼','Double')}${g('triple','≡','Triple')}</div></div><div class="section"><h3>Circle</h3><div class="grid">${g('circular','◎','Circular')}${g('ring','○','Ring')}${g('doublering','◎◎','2-Ring')}${g('halo','◉','Halo')}${g('radial','✺','Radial')}</div></div><div class="section"><h3>Wave</h3><div class="grid">${g('waveform','〰️','Waveform')}${g('oscilloscope','∿','Oscillo')}${g('ribbon','🎗️','Ribbon')}${g('smooth','⌒','Smooth')}</div></div><div class="section"><h3>Modern</h3><div class="grid">${g('neon','💡','Neon')}${g('glass','🪟','Glass')}${g('rgb','🌈','RGB')}${g('cyber','🤖','Cyber')}${g('hologram','◇','Hologram')}</div></div><div class="section"><h3>Premium</h3><div class="grid">${g('energy','◉','Energy')}${g('plasma','⚡','Plasma')}${g('galaxy','🌌','Galaxy')}${g('fire','🔥','Fire')}${g('particles','💥','Particle')}</div></div><div class="section"><h3>Colors</h3><div class="ctrl"><label>Primary</label><input type="color" id="c-col1" value="${State.vizColors[0]}"></div><div class="ctrl"><label>Secondary</label><input type="color" id="c-col2" value="${State.vizColors[1]}"></div><div class="ctrl"><label>Accent</label><input type="color" id="c-col3" value="${State.vizColors[2]}"></div><div class="ctrl"><label><input type="checkbox" id="c-rainbow" ${State.vizRainbow?'checked':''}> Rainbow</label></div><div class="ctrl"><label><input type="checkbox" id="c-autocolor" ${State.vizAutoColor?'checked':''}> Auto Color</label></div></div><div class="section"><h3>Controls</h3><div class="ctrl"><label>Bars <span id="v-bars">${State.vizBarCount}</span></label><input type="range" id="c-bars" min="8" max="128" step="4" value="${State.vizBarCount}"></div><div class="ctrl"><label>Width <span id="v-bw">${State.vizBarWidth}</span></label><input type="range" id="c-bw" min="1" max="16" step="1" value="${State.vizBarWidth}"></div><div class="ctrl"><label>Gap <span id="v-bg2">${State.vizBarGap}</span></label><input type="range" id="c-bg2" min="0" max="8" step="1" value="${State.vizBarGap}"></div><div class="ctrl"><label>Radius <span id="v-rad">${State.vizRadius}</span></label><input type="range" id="c-rad" min="0.1" max="0.45" step="0.01" value="${State.vizRadius}"></div><div class="ctrl"><label>Rotation <span id="v-rot">${State.vizRotSpeed}</span></label><input type="range" id="c-rot" min="0" max="3" step="0.1" value="${State.vizRotSpeed}"></div><div class="ctrl"><label>Glow <span id="v-glow">${State.vizGlow}</span></label><input type="range" id="c-glow" min="0" max="1" step="0.1" value="${State.vizGlow}"></div><div class="ctrl"><label>Reactivity <span id="v-react">${State.vizReactivity}</span></label><input type="range" id="c-react" min="0.5" max="3" step="0.1" value="${State.vizReactivity}"></div><div class="ctrl"><label>Smoothing <span id="v-vsm">${State.vizSmoothing}</span></label><input type="range" id="c-vsm" min="0.1" max="0.95" step="0.05" value="${State.vizSmoothing}"></div><div class="ctrl"><label><input type="checkbox" id="c-peak" ${State.vizPeakHold?'checked':''}> Peak Hold</label></div><div class="ctrl"><label><input type="checkbox" id="c-mirror" ${State.vizMirror?'checked':''}> Mirror</label></div></div>`;},
     background(){return `<div class="section"><h3>🖼️ Type</h3><div class="grid"><div class="grid-item ${State.bgType==='solid'?'active':''}" data-bg="solid"><span class="ico">⬛</span>Solid</div><div class="grid-item ${State.bgType==='gradient'?'active':''}" data-bg="gradient"><span class="ico">🌅</span>Gradient</div><div class="grid-item ${State.bgType==='animated'?'active':''}" data-bg="animated"><span class="ico">🎆</span>Animated</div><div class="grid-item ${State.bgType==='image'?'active':''}" data-bg="image"><span class="ico">🖼️</span>Image</div><div class="grid-item ${State.bgType==='video'?'active':''}" data-bg="video"><span class="ico">🎥</span>Video</div></div></div><div class="section"><h3>🎨 Settings</h3><div class="ctrl"><label>Color 1</label><input type="color" id="c-bg1" value="${State.bgGrad[0]}"></div><div class="ctrl"><label>Color 2</label><input type="color" id="c-bg2" value="${State.bgGrad[1]}"></div><div class="ctrl"><label>Color 3</label><input type="color" id="c-bg3" value="${State.bgGrad[2]||State.bgGrad[1]}"></div><div class="ctrl"><label>Angle <span id="v-bga">${State.bgAngle}</span>°</label><input type="range" id="c-bga" min="0" max="360" step="5" value="${State.bgAngle}"></div><div class="ctrl"><label>Anim Speed <span id="v-bgs">${State.bgAnimSpeed}</span></label><input type="range" id="c-bgs" min="0" max="3" step="0.1" value="${State.bgAnimSpeed}"></div></div><div class="section"><h3>📷 Image</h3><div class="file-drop" id="bg-drop">Upload Background Image<input type="file" id="bg-input" accept="image/*" style="display:none"></div></div><div class="section"><h3>🎥 Video</h3><div class="file-drop" id="bgv-drop">Upload Background Video (MP4/WebM)<input type="file" id="bgv-input" accept="video/*" style="display:none"></div></div>`;},
     bgvideo(){return `<div class="section"><h3>🎥 Background Video</h3><div class="file-drop" id="bgv-drop2">Upload Video (MP4 / WebM)<input type="file" id="bgv-input2" accept="video/mp4,video/webm,video/*" style="display:none"></div><button class="btn btn-danger" id="btn-bgv-remove" style="margin-top:8px">Remove Video</button></div><div class="section"><h3>⚙️ Controls</h3><div class="ctrl"><label>Opacity <span id="v-bvo">${State.bgVideoOpacity}</span></label><input type="range" id="c-bvo" min="0" max="1" step="0.05" value="${State.bgVideoOpacity}"></div><div class="ctrl"><label>Brightness <span id="v-bvb">${State.bgVideoBrightness}</span></label><input type="range" id="c-bvb" min="0.2" max="2" step="0.05" value="${State.bgVideoBrightness}"></div><div class="ctrl"><label>Blur <span id="v-bvl">${State.bgVideoBlur}</span>px</label><input type="range" id="c-bvl" min="0" max="20" step="1" value="${State.bgVideoBlur}"></div><div class="ctrl"><label>Speed <span id="v-bvs">${State.bgVideoSpeed}</span>x</label><input type="range" id="c-bvs" min="0.25" max="3" step="0.25" value="${State.bgVideoSpeed}"></div><div class="ctrl"><label><input type="checkbox" id="c-bvloop" ${State.bgVideoLoop?'checked':''}> Loop</label></div><div class="ctrl"><label><input type="checkbox" id="c-bvmute" ${State.bgVideoMuted?'checked':''}> Mute Video Audio</label></div><div class="ctrl"><label><input type="checkbox" id="c-bvvis" ${State.bgVideoVisible?'checked':''}> Visible</label></div></div><div class="section"><h3>ℹ️ Status</h3><p class="info" id="bgv-status">${State.bgVideo?'✓ Video loaded':'No video loaded'}</p></div>`;},
     particles(){return `<div class="section"><h3>✨ Type</h3><div class="grid"><div class="grid-item ${State.particleType==='dust'?'active':''}" data-pt="dust"><span class="ico">🌫️</span>Dust</div><div class="grid-item ${State.particleType==='snow'?'active':''}" data-pt="snow"><span class="ico">❄️</span>Snow</div><div class="grid-item ${State.particleType==='rain'?'active':''}" data-pt="rain"><span class="ico">🌧️</span>Rain</div><div class="grid-item ${State.particleType==='fireflies'?'active':''}" data-pt="fireflies"><span class="ico">✨</span>Fireflies</div><div class="grid-item ${State.particleType==='bubbles'?'active':''}" data-pt="bubbles"><span class="ico">🫧</span>Bubbles</div><div class="grid-item ${State.particleType==='stars'?'active':''}" data-pt="stars"><span class="ico">⭐</span>Stars</div></div></div><div class="section"><h3>⚙️ Settings</h3><div class="ctrl"><label>Count <span id="v-pc">${State.particleCount}</span></label><input type="range" id="c-pc" min="0" max="200" step="10" value="${State.particleCount}"></div><div class="ctrl"><label>Speed <span id="v-ps">${State.particleSpeed}</span></label><input type="range" id="c-ps" min="0.1" max="4" step="0.1" value="${State.particleSpeed}"></div><div class="ctrl"><label>Size <span id="v-pz">${State.particleSize}</span></label><input type="range" id="c-pz" min="1" max="8" step="0.5" value="${State.particleSize}"></div></div>`;},
@@ -376,7 +686,11 @@ const App = {
         document.querySelectorAll('[data-viz]').forEach(el=>el.addEventListener('click',()=>{document.querySelectorAll('[data-viz]').forEach(x=>x.classList.remove('active'));el.classList.add('active');State.activeViz=el.dataset.viz;}));
         this._bindColor('c-col1',v=>State.vizColors[0]=v);this._bindColor('c-col2',v=>State.vizColors[1]=v);this._bindColor('c-col3',v=>State.vizColors[2]=v);
         this._bind('c-bars','v-bars',v=>State.vizBarCount=v);this._bind('c-glow','v-glow',v=>State.vizGlow=v);this._bind('c-react','v-react',v=>State.vizReactivity=v);
+        this._bind('c-bw','v-bw',v=>State.vizBarWidth=v);this._bind('c-bg2','v-bg2',v=>State.vizBarGap=v);this._bind('c-rad','v-rad',v=>State.vizRadius=v);this._bind('c-rot','v-rot',v=>State.vizRotSpeed=v);this._bind('c-vsm','v-vsm',v=>State.vizSmoothing=v);
         const mirrorCb=document.getElementById('c-mirror');if(mirrorCb)mirrorCb.addEventListener('change',()=>State.vizMirror=mirrorCb.checked);
+        const peakCb=document.getElementById('c-peak');if(peakCb)peakCb.addEventListener('change',()=>State.vizPeakHold=peakCb.checked);
+        const rainbowCb=document.getElementById('c-rainbow');if(rainbowCb)rainbowCb.addEventListener('change',()=>State.vizRainbow=rainbowCb.checked);
+        const autocolorCb=document.getElementById('c-autocolor');if(autocolorCb)autocolorCb.addEventListener('change',()=>State.vizAutoColor=autocolorCb.checked);
         document.querySelectorAll('[data-bg]').forEach(el=>el.addEventListener('click',()=>{document.querySelectorAll('[data-bg]').forEach(x=>x.classList.remove('active'));el.classList.add('active');State.bgType=el.dataset.bg;}));
         this._bindColor('c-bg1',v=>State.bgGrad[0]=v);this._bindColor('c-bg2',v=>State.bgGrad[1]=v);this._bindColor('c-bg3',v=>{if(State.bgGrad.length>2)State.bgGrad[2]=v;else State.bgGrad.push(v);});
         this._bind('c-bga','v-bga',v=>State.bgAngle=v);this._bind('c-bgs','v-bgs',v=>State.bgAnimSpeed=v);
