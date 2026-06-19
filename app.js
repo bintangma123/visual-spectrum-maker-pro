@@ -625,6 +625,77 @@ const Templates = { list:[
     {id:'ambient',name:'Ambient',icon:'🌌',viz:'energy',bg:'animated',bgGrad:['#000428','#004e92','#000428'],colors:['#4facfe','#00f2fe','#fff'],particles:'stars',overlay:'none'}],
     apply(id){const t=this.list.find(x=>x.id===id);if(!t)return;State.activeViz=t.viz;State.bgType=t.bg;State.bgGrad=[...t.bgGrad];State.bgColor=t.bgGrad[0];State.vizColors=[...t.colors];if(t.particles!=='none'){State.particleType=t.particles;State.particleCount=80;BGParticles.init();}else{State.particleCount=0;}State.fxOverlay=t.overlay;Notify.show(`Template: ${t.name}`,'info');}};
 
+// ============================================================
+// PRESET MANAGER PRO
+// ============================================================
+const PresetManager = {
+    STORAGE_KEY: 'vsm_presets',
+    LAST_KEY: 'vsm_last_preset',
+    _getSerializableState() {
+        const s = State;
+        return {
+            activeViz:s.activeViz, bgType:s.bgType, bgColor:s.bgColor, bgGrad:[...s.bgGrad], bgAngle:s.bgAngle, bgAnimSpeed:s.bgAnimSpeed,
+            bgReactive:s.bgReactive, bgVideoOpacity:s.bgVideoOpacity, bgVideoBrightness:s.bgVideoBrightness, bgVideoBlur:s.bgVideoBlur, bgVideoSpeed:s.bgVideoSpeed, bgVideoLoop:s.bgVideoLoop, bgVideoMuted:s.bgVideoMuted, bgVideoVisible:s.bgVideoVisible,
+            particleType:s.particleType, particleCount:s.particleCount, particleSpeed:s.particleSpeed, particleSize:s.particleSize, particleReactive:s.particleReactive,
+            vizColors:[...s.vizColors], vizBarCount:s.vizBarCount, vizGlow:s.vizGlow, vizReactivity:s.vizReactivity, vizMirror:s.vizMirror,
+            vizBarWidth:s.vizBarWidth, vizBarGap:s.vizBarGap, vizRadius:s.vizRadius, vizRotSpeed:s.vizRotSpeed, vizPeakHold:s.vizPeakHold, vizPeakDecay:s.vizPeakDecay, vizRainbow:s.vizRainbow, vizAutoColor:s.vizAutoColor, vizSmoothing:s.vizSmoothing,
+            vizX:s.vizX, vizY:s.vizY, vizScale:s.vizScale, vizScaleW:s.vizScaleW, vizScaleH:s.vizScaleH, vizRotation:s.vizRotation, vizAutoRotate:s.vizAutoRotate, vizAutoRotSpeed:s.vizAutoRotSpeed, vizInnerRadius:s.vizInnerRadius, vizOuterRadius:s.vizOuterRadius, vizThickness:s.vizThickness, vizHeightMult:s.vizHeightMult,
+            fxVignette:s.fxVignette, fxVignetteAmt:s.fxVignetteAmt, fxOverlay:s.fxOverlay, fxOverlayAmt:s.fxOverlayAmt,
+            camBassZoom:s.camBassZoom, camBassAmt:s.camBassAmt, camBeatPunch:s.camBeatPunch, camPunchAmt:s.camPunchAmt, camShake:s.camShake, camShakeAmt:s.camShakeAmt,
+            textTitle:s.textTitle, textArtist:s.textArtist, textAnim:s.textAnim, textColor:s.textColor, textGlow:s.textGlow,
+            logoSize:s.logoSize, logoX:s.logoX, logoY:s.logoY, logoGlow:s.logoGlow,
+            layers:s.layers.map(l=>({...l}))
+        };
+    },
+    _applyState(data) {
+        const skip = ['bgImage','bgVideo','logoImage','vizParticles','time','punchDecay','selectedLayer','exportName'];
+        for (const key in data) { if (skip.includes(key)) continue; if (key==='layers'){State.layers=data.layers.map(l=>({...l}));} else if(key==='bgGrad'||key==='vizColors'){State[key]=[...data[key]];} else {State[key]=data[key];} }
+        BGParticles.init();
+    },
+    getUserPresets() { try{return JSON.parse(localStorage.getItem(this.STORAGE_KEY)||'[]');}catch(e){return [];} },
+    _saveUserPresets(presets) { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(presets)); },
+    save(name) {
+        const presets = this.getUserPresets();
+        const preset = { id:'user_'+Date.now(), name, data:this._getSerializableState(), favorite:false, created:Date.now() };
+        presets.push(preset);
+        this._saveUserPresets(presets);
+        this.autoSave();
+        Notify.show('Preset saved: '+name,'success');
+        return preset;
+    },
+    load(id) {
+        // Check built-in templates first
+        const tpl = Templates.list.find(t=>t.id===id);
+        if (tpl) { Templates.apply(id); this.autoSave(); return; }
+        // User presets
+        const presets = this.getUserPresets();
+        const preset = presets.find(p=>p.id===id);
+        if (preset) { this._applyState(preset.data); this.autoSave(); Notify.show('Loaded: '+preset.name,'success'); }
+    },
+    rename(id, newName) { const presets=this.getUserPresets(); const p=presets.find(x=>x.id===id); if(p){p.name=newName;this._saveUserPresets(presets);Notify.show('Renamed','info');} },
+    duplicate(id) { const presets=this.getUserPresets(); const p=presets.find(x=>x.id===id); if(p){const dup={...p,id:'user_'+Date.now(),name:p.name+' Copy',data:{...p.data}};presets.push(dup);this._saveUserPresets(presets);Notify.show('Duplicated','info');} },
+    remove(id) { let presets=this.getUserPresets(); presets=presets.filter(x=>x.id!==id); this._saveUserPresets(presets); Notify.show('Deleted','info'); },
+    toggleFavorite(id) { const presets=this.getUserPresets(); const p=presets.find(x=>x.id===id); if(p){p.favorite=!p.favorite;this._saveUserPresets(presets);} },
+    exportPreset(id) {
+        const presets=this.getUserPresets(); const p=presets.find(x=>x.id===id);
+        if(!p){Notify.show('Select a user preset','error');return;}
+        const json=JSON.stringify(p,null,2);
+        const blob=new Blob([json],{type:'application/json'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');a.href=url;a.download=(p.name||'preset')+'.vspreset';
+        document.body.appendChild(a);a.click();document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+        Notify.show('Exported: '+p.name,'success');
+    },
+    importPreset(file) {
+        const reader=new FileReader();
+        reader.onload=e=>{try{const p=JSON.parse(e.target.result);if(!p.data||!p.name){Notify.show('Invalid preset file','error');return;}p.id='user_'+Date.now();const presets=this.getUserPresets();presets.push(p);this._saveUserPresets(presets);Notify.show('Imported: '+p.name,'success');}catch(err){Notify.show('Import failed','error');}};
+        reader.readAsText(file);
+    },
+    autoSave() { localStorage.setItem(this.LAST_KEY, JSON.stringify(this._getSerializableState())); },
+    autoLoad() { try{const d=JSON.parse(localStorage.getItem(this.LAST_KEY));if(d)this._applyState(d);}catch(e){} }
+};
+
 const Exporter = { recorder:null, chunks:[], isRecording:false,
     start(canvas){this.chunks=[];const stream=canvas.captureStream(30);const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';this.recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8000000});this.recorder.ondataavailable=e=>{if(e.data.size>0)this.chunks.push(e.data);};this.recorder.onstop=()=>this._save();this.recorder.start(100);this.isRecording=true;document.getElementById('recording-badge').classList.remove('hidden');Notify.show('Recording started','info');},
     stop(){if(this.recorder&&this.isRecording){this.recorder.stop();this.isRecording=false;}document.getElementById('recording-badge').classList.add('hidden');},
@@ -644,7 +715,7 @@ const Panels = {
     effects(){return `<div class="section"><h3>💡 Lighting</h3><div class="ctrl"><label>Vignette <span id="v-vig">${State.fxVignetteAmt}</span></label><input type="range" id="c-vig" min="0" max="1" step="0.05" value="${State.fxVignetteAmt}"></div></div><div class="section"><h3>📷 Camera</h3><div class="ctrl"><label>Bass Zoom <span id="v-bz">${State.camBassAmt}</span></label><input type="range" id="c-bz" min="0" max="0.1" step="0.005" value="${State.camBassAmt}"></div><div class="ctrl"><label>Beat Punch <span id="v-bp">${State.camPunchAmt}</span></label><input type="range" id="c-bp" min="0" max="0.1" step="0.005" value="${State.camPunchAmt}"></div><div class="ctrl"><label>Shake <span id="v-sh">${State.camShakeAmt}</span></label><input type="range" id="c-sh" min="0" max="8" step="0.5" value="${State.camShakeAmt}"></div></div><div class="section"><h3>🎬 Overlay</h3><div class="grid"><div class="grid-item ${State.fxOverlay==='none'?'active':''}" data-fx="none"><span class="ico">✕</span>None</div><div class="grid-item ${State.fxOverlay==='grain'?'active':''}" data-fx="grain"><span class="ico">🎞️</span>Grain</div><div class="grid-item ${State.fxOverlay==='scanline'?'active':''}" data-fx="scanline"><span class="ico">≡</span>Scanline</div><div class="grid-item ${State.fxOverlay==='vhs'?'active':''}" data-fx="vhs"><span class="ico">📼</span>VHS</div><div class="grid-item ${State.fxOverlay==='bokeh'?'active':''}" data-fx="bokeh"><span class="ico">●</span>Bokeh</div></div><div class="ctrl"><label>Intensity <span id="v-fxi">${State.fxOverlayAmt}</span></label><input type="range" id="c-fxi" min="0" max="1" step="0.05" value="${State.fxOverlayAmt}"></div></div>`;},
     text(){return `<div class="section"><h3>📝 Text</h3><div class="ctrl"><label>Title</label><input type="text" id="c-title" value="${State.textTitle}"></div><div class="ctrl"><label>Artist</label><input type="text" id="c-artist" value="${State.textArtist}"></div><div class="ctrl"><label>Color</label><input type="color" id="c-tcol" value="${State.textColor}"></div><div class="ctrl"><label>Glow <span id="v-tg">${State.textGlow}</span></label><input type="range" id="c-tg" min="0" max="1" step="0.1" value="${State.textGlow}"></div></div><div class="section"><h3>✨ Animation</h3><div class="grid"><div class="grid-item ${State.textAnim==='none'?'active':''}" data-ta="none"><span class="ico">—</span>None</div><div class="grid-item ${State.textAnim==='fade'?'active':''}" data-ta="fade"><span class="ico">◐</span>Fade</div><div class="grid-item ${State.textAnim==='bounce'?'active':''}" data-ta="bounce"><span class="ico">⤴</span>Bounce</div><div class="grid-item ${State.textAnim==='pulse'?'active':''}" data-ta="pulse"><span class="ico">💓</span>Pulse</div><div class="grid-item ${State.textAnim==='neon'?'active':''}" data-ta="neon"><span class="ico">💡</span>Neon</div><div class="grid-item ${State.textAnim==='glitch'?'active':''}" data-ta="glitch"><span class="ico">⚡</span>Glitch</div></div></div><div class="section"><h3>🏷️ Logo</h3><div class="file-drop" id="logo-drop">Upload Logo (PNG/SVG)<input type="file" id="logo-input" accept="image/*" style="display:none"></div><div class="ctrl"><label>Size <span id="v-ls">${State.logoSize}</span></label><input type="range" id="c-ls" min="20" max="200" step="5" value="${State.logoSize}"></div><div class="ctrl"><label>Position Y <span id="v-ly">${State.logoY}</span></label><input type="range" id="c-ly" min="0.05" max="0.95" step="0.01" value="${State.logoY}"></div><div class="ctrl"><label>Glow <span id="v-lg">${State.logoGlow}</span></label><input type="range" id="c-lg" min="0" max="1" step="0.1" value="${State.logoGlow}"></div></div>`;},
     layers(){const ls=State.layers;return `<div class="section"><h3>🗂️ Layers</h3><div id="layer-list">${ls.map((l,i)=>`<div class="layer-item ${State.selectedLayer===l.id?'active':''}" data-lid="${l.id}" data-idx="${i}"><span class="layer-vis" data-ltog="${l.id}">${l.visible?'👁':'👁‍🗨'}</span><span class="layer-lock" data-llock="${l.id}">${l.locked?'🔒':'🔓'}</span><span class="layer-name">${l.name}</span><span class="layer-opacity">${Math.round(l.opacity*100)}%</span></div>`).join('')}</div></div><div class="section"><h3>⬆️ Order</h3><div class="grid"><div class="grid-item" id="l-up"><span class="ico">⬆</span>Up</div><div class="grid-item" id="l-down"><span class="ico">⬇</span>Down</div><div class="grid-item" id="l-top"><span class="ico">⏫</span>Top</div><div class="grid-item" id="l-bottom"><span class="ico">⏬</span>Bottom</div></div></div><div class="section"><h3>⚙️ Layer Options</h3><div class="ctrl"><label>Opacity <span id="v-lop">${State.selectedLayer?Math.round((ls.find(x=>x.id===State.selectedLayer)||{opacity:1}).opacity*100):100}%</span></label><input type="range" id="c-lop" min="0" max="1" step="0.05" value="${(ls.find(x=>x.id===State.selectedLayer)||{opacity:1}).opacity}"></div><div class="grid"><div class="grid-item" id="l-show"><span class="ico">👁</span>Show/Hide</div><div class="grid-item" id="l-lock"><span class="ico">🔒</span>Lock</div><div class="grid-item" id="l-dup"><span class="ico">📋</span>Duplicate</div><div class="grid-item" id="l-del"><span class="ico">🗑️</span>Delete</div></div></div><div class="section"><h3>📌 Align Selected</h3><div class="grid"><div class="grid-item" data-lalign="center">◎ Center</div><div class="grid-item" data-lalign="top">↑ Top</div><div class="grid-item" data-lalign="bottom">↓ Bottom</div><div class="grid-item" data-lalign="left">← Left</div><div class="grid-item" data-lalign="right">→ Right</div></div></div>`;},
-    templates(){return `<div class="section"><h3>🎭 Templates</h3><div class="grid">${Templates.list.map(t=>`<div class="grid-item" data-tpl="${t.id}"><span class="ico">${t.icon}</span>${t.name}</div>`).join('')}</div></div><div class="section"><button class="btn btn-primary" id="btn-random">🎲 Random Preset</button></div>`;},
+    templates(){const up=PresetManager.getUserPresets();return `<div class="section"><h3>🎭 Built-in Templates</h3><div class="grid">${Templates.list.map(t=>`<div class="grid-item" data-tpl="${t.id}"><span class="ico">${t.icon}</span>${t.name}</div>`).join('')}</div></div><div class="section"><h3>💾 User Presets</h3>${up.length?`<div id="user-preset-list">${up.map(p=>`<div class="layer-item" data-upreset="${p.id}"><span class="layer-vis" data-pfav="${p.id}">${p.favorite?'⭐':'☆'}</span><span class="layer-name">${p.name}</span><span class="layer-opacity" data-pdel="${p.id}">🗑️</span></div>`).join('')}</div>`:'<p class="info">No saved presets yet</p>'}</div><div class="section"><h3>➕ Save Current</h3><div class="ctrl"><label>Name</label><input type="text" id="c-pname" value="My Preset" placeholder="Preset name"></div><button class="btn btn-primary" id="btn-psave">💾 Save Preset</button></div><div class="section"><h3>📁 Import / Export</h3><div class="file-drop" id="preset-drop">Import .vspreset<input type="file" id="preset-input" accept=".vspreset,.json" style="display:none"></div><button class="btn btn-primary" id="btn-pexport" style="margin-top:6px">📤 Export Selected</button></div><div class="section"><button class="btn btn-primary" id="btn-random">🎲 Random Preset</button></div>`;},
     export(){return `<div class="section"><h3>🎬 Export Video</h3><p class="info" style="margin-bottom:10px">Records canvas as WebM video <b>without audio</b>.</p><div class="ctrl"><label>Filename</label><input type="text" id="c-ename" value="${State.exportName}"></div><button class="btn btn-primary" id="btn-rec-start" style="margin-top:8px">⏺ Start Recording</button><button class="btn btn-danger" id="btn-rec-stop" style="margin-top:6px;display:none">⏹ Stop & Download</button></div><div class="section"><h3>ℹ️ Info</h3><p class="info">• WebM (VP9) without audio<br>• Resolution: canvas size<br>• 30 FPS<br>• Combine with MP3 in CapCut / Premiere / DaVinci</p></div>`;}
 };
 
@@ -657,7 +728,7 @@ const App = {
     init(){
         this.canvas=document.getElementById('preview-canvas'); this.ctx=this.canvas.getContext('2d');
         this.resize(); window.addEventListener('resize',()=>this.resize());
-        BGParticles.init(); this.setupNav(); this.setupTransport();
+        BGParticles.init(); PresetManager.autoLoad(); this.setupNav(); this.setupTransport();
         this.setupDragDrop(); this.setupSpectrumDrag(); this.setupKeyboard(); this.showPanel('dashboard'); this.loop();
     },
     resize(){ const c=document.getElementById('canvas-container'); this.canvas.width=c.clientWidth; this.canvas.height=c.clientHeight; },
@@ -759,6 +830,14 @@ const App = {
         // Templates
         document.querySelectorAll('[data-tpl]').forEach(el=>el.addEventListener('click',()=>{Templates.apply(el.dataset.tpl);document.querySelectorAll('[data-tpl]').forEach(x=>x.classList.remove('active'));el.classList.add('active');}));
         const rb=document.getElementById('btn-random');if(rb)rb.addEventListener('click',()=>{const t=Templates.list[Math.floor(Math.random()*Templates.list.length)];Templates.apply(t.id);});
+        // Presets
+        document.querySelectorAll('[data-upreset]').forEach(el=>el.addEventListener('click',()=>{PresetManager.load(el.dataset.upreset);}));
+        document.querySelectorAll('[data-pfav]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();PresetManager.toggleFavorite(el.dataset.pfav);this.showPanel('templates');}));
+        document.querySelectorAll('[data-pdel]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();PresetManager.remove(el.dataset.pdel);this.showPanel('templates');}));
+        const psave=document.getElementById('btn-psave');if(psave)psave.addEventListener('click',()=>{const name=(document.getElementById('c-pname')||{}).value||'My Preset';PresetManager.save(name);this.showPanel('templates');});
+        const pexport=document.getElementById('btn-pexport');if(pexport)pexport.addEventListener('click',()=>{const presets=PresetManager.getUserPresets();if(presets.length)PresetManager.exportPreset(presets[presets.length-1].id);});
+        const pdrop=document.getElementById('preset-drop'),pinput=document.getElementById('preset-input');
+        if(pdrop){pdrop.addEventListener('click',()=>pinput.click());}if(pinput){pinput.addEventListener('change',e=>{if(e.target.files[0]){PresetManager.importPreset(e.target.files[0]);setTimeout(()=>this.showPanel('templates'),500);}});}
         // Layers
         document.querySelectorAll('[data-lid]').forEach(el=>el.addEventListener('click',()=>{State.selectedLayer=el.dataset.lid;this.showPanel('layers');}));
         document.querySelectorAll('[data-ltog]').forEach(el=>el.addEventListener('click',e=>{e.stopPropagation();const l=State.layers.find(x=>x.id===el.dataset.ltog);if(l)l.visible=!l.visible;this.showPanel('layers');}));
