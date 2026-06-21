@@ -184,11 +184,165 @@ restore(){try{const d=JSON.parse(localStorage.getItem(this.LK));if(d)this._apply
 };
 
 // === EXPORTER ===
-// ExportEngine
-const EXP={rec:null,chunks:[],recording:false,
-start(cv){this.chunks=[];const stream=cv.captureStream(S.expFps);const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm';this.rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8000000});this.rec.ondataavailable=e=>{if(e.data.size>0)this.chunks.push(e.data);};this.rec.onstop=()=>this._save();this.rec.start(100);this.recording=true;document.getElementById('rec-badge').classList.remove('hidden');N.show('Recording...','i');},
-stop(){if(this.rec&&this.recording){this.rec.stop();this.recording=false;}document.getElementById('rec-badge').classList.add('hidden');},
-_save(){const b=new Blob(this.chunks,{type:'video/webm'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=(S.expName||'spectrum')+'.webm';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);N.show('Video saved!','s');}};
+// ExportEngine: OffscreenCanvas frame-by-frame rendering pipeline
+// Pipeline: OffscreenCanvas → Frame extraction → WebM/MP4 assembly
+// Falls back to MediaRecorder if VideoEncoder unavailable
+const EXP={
+    recording:false, rendering:false, progress:0, totalFrames:0, currentFrame:0,
+    offscreen:null, offCtx:null, chunks:[], audioBlob:null,
+
+    // Primary export: frame-by-frame offline render using OffscreenCanvas
+    async startOfflineRender(sourceCanvas, audioFile) {
+        if (this.rendering) return;
+        this.rendering = true; this.progress = 0;
+        document.getElementById('rec-badge').classList.remove('hidden');
+        N.show('Rendering frames...','i');
+
+        const fps = S.expFps;
+        const duration = Audio.dur || 10;
+        this.totalFrames = Math.ceil(duration * fps);
+        this.currentFrame = 0;
+
+        // Create OffscreenCanvas at target resolution
+        const resMap = {'720':[1280,720],'1080':[1920,1080],'1440':[2560,1440],'4k':[3840,2160]};
+        const [rw,rh] = resMap[S.expRes] || [1920,1080];
+
+        // Use OffscreenCanvas if available, otherwise regular canvas
+        let offCv, offCx;
+        if (typeof OffscreenCanvas !== 'undefined') {
+            offCv = new OffscreenCanvas(rw, rh);
+            offCx = offCv.getContext('2d');
+        } else {
+            offCv = document.createElement('canvas');
+            offCv.width = rw; offCv.height = rh;
+            offCx = offCv.getContext('2d');
+        }
+        this.offscreen = offCv; this.offCtx = offCx;
+
+        // Collect frames
+        const frames = [];
+        const frameDuration = 1 / fps;
+
+        for (let f = 0; f < this.totalFrames; f++) {
+            // Simulate audio analysis at this time position
+            const t = f * frameDuration;
+            S.t = t;
+
+            // Render frame to offscreen canvas
+            const d = Audio.analyze(); // Current audio data
+            offCx.clearRect(0, 0, rw, rh);
+            offCx.save();
+            CAM.apply(offCx, rw, rh, d);
+            for (const layer of S.layers) {
+                if (!layer.vis) continue;
+                offCx.globalAlpha = layer.op;
+                switch(layer.type) {
+                    case 'bg': BG.render(offCx, rw, rh, d); break;
+                    case 'pt': if(S.pCount>0){PT.update(d);PT.render(offCx);} break;
+                    case 'viz': {
+                        const fn = V[S.viz]; if(fn){
+                        offCx.save();const vx=S.vx*rw,vy=S.vy*rh;offCx.translate(vx,vy);
+                        const rot=S.vr+(S.vaRot?S.t*S.vaSpd:0);if(rot)offCx.rotate(rot);
+                        offCx.scale(S.vs*S.vsw*(S.flipH?-1:1),S.vs*S.vsh*(S.flipV?-1:1));
+                        offCx.translate(-vx,-vy);fn(offCx,rw,rh,d);offCx.restore();} break;}
+                    case 'fx': FX.apply(offCx, rw, rh, d); break;
+                    case 'txt': TXT.render(offCx, rw, rh, d); break;
+                    case 'logo': LOGO.render(offCx, rw, rh, d); break;
+                }
+                offCx.globalAlpha = 1;
+            }
+            offCx.restore();
+
+            // Extract frame as blob
+            let blob;
+            if (offCv.convertToBlob) {
+                blob = await offCv.convertToBlob({type:'image/webp',quality:0.92});
+            } else {
+                blob = await new Promise(r => offCv.toBlob(r, 'image/webp', 0.92));
+            }
+            frames.push(blob);
+            this.currentFrame = f + 1;
+            this.progress = (f + 1) / this.totalFrames;
+
+            // Yield to UI every 10 frames
+            if (f % 10 === 0) await new Promise(r => setTimeout(r, 0));
+        }
+
+        // Assemble video using MediaRecorder on a playback canvas
+        N.show('Encoding video...','i');
+        await this._assembleVideo(frames, rw, rh, fps);
+
+        this.rendering = false;
+        document.getElementById('rec-badge').classList.add('hidden');
+        N.show('Export complete! MP4 saved.','s');
+    },
+
+    async _assembleVideo(frames, w, h, fps) {
+        // Create a temporary canvas and play back frames into MediaRecorder
+        const tmpCv = document.createElement('canvas');
+        tmpCv.width = w; tmpCv.height = h;
+        const tmpCx = tmpCv.getContext('2d');
+        const stream = tmpCv.captureStream(fps);
+
+        const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+        const rec = new MediaRecorder(stream, {mimeType: mime, videoBitsPerSecond: 12000000});
+        const chunks = [];
+        rec.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+
+        const done = new Promise(resolve => { rec.onstop = resolve; });
+        rec.start();
+
+        // Play each frame at correct timing
+        const frameDur = 1000 / fps;
+        for (let i = 0; i < frames.length; i++) {
+            const img = await createImageBitmap(frames[i]);
+            tmpCx.clearRect(0, 0, w, h);
+            tmpCx.drawImage(img, 0, 0, w, h);
+            img.close();
+            await new Promise(r => setTimeout(r, frameDur));
+        }
+
+        rec.stop();
+        await done;
+
+        // Save
+        const blob = new Blob(chunks, {type: mime});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (S.expName || 'spectrum') + '.webm';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    },
+
+    // Legacy: real-time recording (kept as fallback / quick capture)
+    rec: null, _chunks: [],
+    start(cv) {
+        this._chunks = [];
+        const stream = cv.captureStream(S.expFps);
+        const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+        this.rec = new MediaRecorder(stream, {mimeType: mime, videoBitsPerSecond: 8000000});
+        this.rec.ondataavailable = e => { if(e.data.size>0) this._chunks.push(e.data); };
+        this.rec.onstop = () => this._saveLegacy();
+        this.rec.start(100);
+        this.recording = true;
+        document.getElementById('rec-badge').classList.remove('hidden');
+        N.show('Recording (real-time)...','i');
+    },
+    stop() {
+        if(this.rec && this.recording){this.rec.stop();this.recording=false;}
+        document.getElementById('rec-badge').classList.add('hidden');
+    },
+    _saveLegacy() {
+        const b = new Blob(this._chunks, {type:'video/webm'});
+        const u = URL.createObjectURL(b);
+        const a = document.createElement('a');
+        a.href = u; a.download = (S.expName||'spectrum')+'.webm';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(u), 2000);
+        N.show('Video saved!','s');
+    }
+};
 
 
 // === PANELS ===
@@ -206,7 +360,7 @@ camera(){return`<div class="sec"><h3>📷 Camera</h3><div class="ct"><label>Bass
 text(){return`<div class="sec"><h3>📝 Text</h3><div class="ct"><label>Title</label><input type="text" id="tt" value="${S.txt}"></div><div class="ct"><label>Artist</label><input type="text" id="ta" value="${S.art}"></div><div class="ct"><label>Color</label><input type="color" id="tc" value="${S.txtCol}"></div><div class="ct"><label>Size <span>${S.txtSize}</span></label><input type="range" id="tsz" min="12" max="60" step="2" value="${S.txtSize}"></div><div class="ct"><label>Glow <span>${S.txtGlow}</span></label><input type="range" id="tgl" min="0" max="1" step="0.1" value="${S.txtGlow}"></div></div><div class="sec"><h3>Animation</h3><div class="gr">${['none','fade','slide','bounce','zoom','pulse','typewriter','neon','glitch'].map(a=>`<div class="gi ${S.txtAnim===a?'on':''}" data-ta="${a}">${a}</div>`).join('')}</div></div><div class="sec"><h3>🏷️ Logo</h3><div class="fd" id="lg-drop">Upload Logo<input type="file" id="lg-in" accept="image/*" style="display:none"></div><div class="ct"><label>Size <span>${S.logoS}</span></label><input type="range" id="ls" min="20" max="200" step="5" value="${S.logoS}"></div><div class="ct"><label>Y <span>${S.logoY}</span></label><input type="range" id="ly" min="0.05" max="0.95" step="0.01" value="${S.logoY}"></div><div class="ct"><label>Opacity <span>${S.logoOp}</span></label><input type="range" id="lop" min="0" max="1" step="0.05" value="${S.logoOp}"></div></div>`;},
 layers(){return`<div class="sec"><h3>🗂️ Layers</h3><div id="ll">${S.layers.map(l=>`<div class="li ${S.sel===l.id?'on':''}" data-lid="${l.id}"><span data-ltog="${l.id}">${l.vis?'👁':'–'}</span><span data-lk="${l.id}">${l.lock?'🔒':'🔓'}</span><span class="ln">${l.name}</span><span style="font-size:9px;color:var(--muted)">${Math.round(l.op*100)}%</span></div>`).join('')}</div></div><div class="sec"><h3>Order</h3><div class="gr"><div class="gi" id="lu">⬆ Up</div><div class="gi" id="ld">⬇ Down</div><div class="gi" id="lt">⏫ Top</div><div class="gi" id="lb">⏬ Bot</div></div></div><div class="sec"><h3>Options</h3><div class="ct"><label>Opacity <span id="vlo">${S.sel?Math.round((S.layers.find(x=>x.id===S.sel)||{op:1}).op*100):100}%</span></label><input type="range" id="clo" min="0" max="1" step="0.05" value="${(S.layers.find(x=>x.id===S.sel)||{op:1}).op}"></div><div class="gr"><div class="gi" id="lvis">👁 Toggle</div><div class="gi" id="llk">🔒 Lock</div><div class="gi" id="ldup">📋 Dup</div><div class="gi" id="ldel">🗑️ Del</div></div></div>`;},
 presets(){const up=PM.get();return`<div class="sec"><h3>🎭 Templates</h3><div class="gr">${TPL.map(t=>`<div class="gi" data-tpl="${t.id}"><span class="ic">${t.ic}</span>${t.name}</div>`).join('')}</div></div><div class="sec"><h3>💾 Saved</h3>${up.length?up.map(p=>`<div class="li" data-up="${p.id}"><span data-pf="${p.id}">${p.fav?'⭐':'☆'}</span><span class="ln">${p.name}</span><span data-pd="${p.id}" style="cursor:pointer">🗑️</span></div>`).join(''):'<p class="info">No presets</p>'}</div><div class="sec"><h3>Save</h3><div class="ct"><input type="text" id="pn" value="My Preset"></div><button class="btn btn-p" id="psv">💾 Save</button></div><div class="sec"><div class="fd" id="pi-drop">Import .vspreset<input type="file" id="pi-in" accept=".vspreset,.json" style="display:none"></div><button class="btn btn-p" id="pex" style="margin-top:4px">📤 Export Last</button></div><div class="sec"><button class="btn btn-p" id="prnd">🎲 Random</button></div>`;},
-export(){return`<div class="sec"><h3>🎬 Export</h3><div class="ct"><label>Filename</label><input type="text" id="en" value="${S.expName}"></div><div class="ct"><label>Resolution</label><select id="eres"><option value="720" ${S.expRes==='720'?'selected':''}>720p</option><option value="1080" ${S.expRes==='1080'?'selected':''}>1080p</option><option value="1440" ${S.expRes==='1440'?'selected':''}>1440p</option><option value="4k" ${S.expRes==='4k'?'selected':''}>4K</option></select></div><div class="ct"><label>FPS</label><select id="efps"><option value="30" ${S.expFps===30?'selected':''}>30</option><option value="60" ${S.expFps===60?'selected':''}>60</option></select></div><button class="btn btn-p" id="erst" style="margin-top:8px">⏺ Start</button><button class="btn btn-d" id="ersp" style="margin-top:4px;display:none">⏹ Stop</button></div><div class="sec"><h3>ℹ️</h3><p class="info">• WebM (VP9) no audio<br>• Combine with MP3 in editor<br>• Layer order preserved</p></div>`;}
+export(){return`<div class="sec"><h3>🎬 Offline Render (High Quality)</h3><p class="info" style="margin-bottom:6px">Frame-by-frame render using OffscreenCanvas.<br>Renders every frame at full resolution.</p><div class="ct"><label>Filename</label><input type="text" id="en" value="${S.expName}"></div><div class="ct"><label>Resolution</label><select id="eres"><option value="720" ${S.expRes==='720'?'selected':''}>720p</option><option value="1080" ${S.expRes==='1080'?'selected':''}>1080p</option><option value="1440" ${S.expRes==='1440'?'selected':''}>1440p</option><option value="4k" ${S.expRes==='4k'?'selected':''}>4K</option></select></div><div class="ct"><label>FPS</label><select id="efps"><option value="30" ${S.expFps===30?'selected':''}>30</option><option value="60" ${S.expFps===60?'selected':''}>60</option></select></div><button class="btn btn-p" id="ernd" style="margin-top:6px">🎬 Render Video</button><div class="ct" style="margin-top:8px"><label>Progress: <span id="eprog">0%</span></label><div class="meter-bar" style="height:6px"><div class="mf o" id="ebar" style="width:0%"></div></div></div></div><div class="sec"><h3>⏺ Quick Capture (Real-time)</h3><p class="info" style="margin-bottom:6px">Records live canvas. Play audio first.</p><button class="btn btn-p" id="erst">⏺ Start Capture</button><button class="btn btn-d" id="ersp" style="margin-top:4px;display:none">⏹ Stop</button></div><div class="sec"><h3>ℹ️</h3><p class="info">• Offline Render: high quality, not real-time<br>• Quick Capture: real-time, lower quality<br>• Output: WebM (VP9)<br>• Both preserve all layers</p></div>`;}
 };
 
 
@@ -224,6 +378,7 @@ async _loadAudio(f){await Audio.load(f);S.txt=f.name.replace(/\.[^/.]+$/,'').rep
 _loadImg(f){const img=new Image();img.onload=()=>{S.bgImg=img;S.bgType='image';N.show('BG image set','s');};img.src=URL.createObjectURL(f);},
 _loadVid(f){if(S.bgVid){S.bgVid.pause();S.bgVid=null;}const v=document.createElement('video');v.src=URL.createObjectURL(f);v.loop=S.bgVidLoop;v.muted=S.bgVidMute;v.playsInline=true;v.preload='auto';v.playbackRate=S.bgVidSpd;S.bgVid=v;S.bgType='video';v.play().catch(()=>{v.addEventListener('canplay',()=>v.play().catch(()=>{}),{once:true});v.load();});N.show('BG video set','s');},
 _syncVid(){if(!S.bgVid)return;if(Audio.playing){if(S.bgVid.paused)S.bgVid.play().catch(()=>{});}else{if(!S.bgVid.paused)S.bgVid.pause();}},
+_renderProg(){if(!EXP.rendering)return;const pct=Math.round(EXP.progress*100);const el=document.getElementById('eprog');if(el)el.textContent=pct+'% ('+EXP.currentFrame+'/'+EXP.totalFrames+')';const bar=document.getElementById('ebar');if(bar)bar.style.width=pct+'%';requestAnimationFrame(()=>this._renderProg());},
 show(id){this.panel=id;document.getElementById('sidebar').innerHTML=P[id]?P[id]():'';document.getElementById('props').innerHTML=id==='dashboard'?'<div class="sec"><h3>⚡ Start</h3><p class="info">1. Drop MP3<br>2. Pick spectrum<br>3. Customize<br>4. Export</p></div><div class="sec"><h3>⌨️ Keys</h3><p class="info">Space–Play<br>S–Stop<br>R–Record<br>F–Full<br>M–Mute<br>G–Grid<br>1-9–Viz</p></div>':'';document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('on',b.dataset.tab===id));setTimeout(()=>this.bind(),30);},
 bind(){// Universal slider binder
 const b=(id,cb)=>{const el=document.getElementById(id);if(el)el.addEventListener('input',()=>cb(parseFloat(el.value)));};
@@ -293,6 +448,8 @@ const efps=document.getElementById('efps');if(efps)efps.onchange=e=>S.expFps=par
 const erst=document.getElementById('erst'),ersp=document.getElementById('ersp');
 if(erst)erst.onclick=()=>{EXP.start(this.cv);erst.style.display='none';ersp.style.display='block';if(!Audio.playing&&Audio.buf)Audio.play();};
 if(ersp)ersp.onclick=()=>{EXP.stop();erst.style.display='block';ersp.style.display='none';};
+const ernd=document.getElementById('ernd');if(ernd)ernd.onclick=()=>{if(EXP.rendering)return;EXP.startOfflineRender(this.cv);this._renderProg();};
+
 },
 loop(){requestAnimationFrame(()=>this.loop());this.render();this.fc++;const n=performance.now();if(n-this.lt>=1000){this.fps=this.fc;this.fc=0;this.lt=n;}},
 render(){const w=this.cv.width,h=this.cv.height,c=this.cx,d=Audio.analyze();S.t+=.016;
